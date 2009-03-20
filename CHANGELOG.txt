@@ -1,0 +1,7 @@
+$Id$
+
+Changelog for Revisioning module for drupal 6.
+
+6.x-1.0-alpha1
+==============
+Initial drupal 6 release.
