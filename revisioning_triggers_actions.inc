@@ -40,12 +40,14 @@ function revisioning_hook_info() {
  *  trigger operation name
  */
 function revisioning_revisioning($op) {
+  if (!module_exists("trigger")) {
+    return;
+  }
   $action_ids = array_keys(_trigger_get_hook_aids('revisioning', $op));
   if (empty($action_ids)) {
     return;
   }
-  watchdog('revisioning', '%op trigger is actioning @aids',
-                          array('%op' => $op, '@aids' => implode(', ', $action_ids)),
+  watchdog('revisioning', '%op trigger is actioning @aids', array('%op' => $op, '@aids' => implode(', ', $action_ids)),
            WATCHDOG_NOTICE, l(t('view'), "node/$node->nid"));
   global $user;
   $context = array('hook' => 'revisioning', 'op' => $op, 'user' => $user);
@@ -77,8 +79,7 @@ function revisioning_action_info() {
  */
 function revisioning_publish_latest_revision_action(&$node, $context = array()) {
   $type = node_get_types('name', $node->type);
-  watchdog('revisioning', 'Executing publish_latest_revision action for @type %title',
-                          array('@type' => $type, '%title' => $node->title),
+  watchdog('revisioning', 'Executing publish_latest_revision action for @type %title', array('@type' => $type, '%title' => $node->title),
            WATCHDOG_NOTICE, l(t('view'), "node/$node->nid"));
   revisioning_publish_latest_revision($node);
 }

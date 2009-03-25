@@ -3,4 +3,11 @@ name = Revisioning
 description = Allows content to be created and edited while remaining invisible to the public until reviewed and accepted by a moderator
 dependencies[] = module_grants
 core = "6.x"
-version = "6.x-1.0-alpha"
+version = "6.x-1.1"
+
+; Information added by drupal.org packaging script on 2009-03-22
+version = "6.x-1.0"
+core = "6.x"
+project = "revisioning"
+datestamp = "1237687540"
+
