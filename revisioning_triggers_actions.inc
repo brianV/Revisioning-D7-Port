@@ -47,8 +47,7 @@ function revisioning_revisioning($op) {
   if (empty($action_ids)) {
     return;
   }
-  watchdog('revisioning', '%op trigger is actioning @aids', array('%op' => $op, '@aids' => implode(', ', $action_ids)),
-           WATCHDOG_NOTICE, l(t('view'), "node/$node->nid"));
+  watchdog('revisioning', '%op trigger is actioning "@aids"', array('%op' => $op, '@aids' => implode(', ', $action_ids)));
   global $user;
   $context = array('hook' => 'revisioning', 'op' => $op, 'user' => $user);
   actions_do($action_ids, $user, $context);

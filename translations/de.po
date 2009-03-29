@@ -1,0 +1,259 @@
+# $Id$
+#
+# German translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  revisioning_triggers_actions.inc,v 1.1.2.1 2009/03/25 23:22:47 rdeboer
+#  revisioning.module,v 1.1.2.1 2009/03/25 23:22:47 rdeboer
+#  revisioning.info,v 1.1.2.1 2009/03/25 23:22:47 rdeboer
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Drupal Revisioning V6.x-1.1\n"
+"POT-Creation-Date: 2009-03-26 18:42+0100\n"
+"PO-Revision-Date: 2009-03-26 18:43+0100\n"
+"Last-Translator: Frank Tartler <frank.tartler@googlemail.com>\n"
+"Language-Team: Frank Tartler <frank.tartler@googlemail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+"X-Poedit-Language: German\n"
+"X-Poedit-Country: GERMANY\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: revisioning_triggers_actions.inc:20
+msgid "When publishing a pending revision"
+msgstr "Beim Veröffentlichen einer ausstehenden Version"
+
+#: revisioning_triggers_actions.inc:23
+msgid "When reverting to an old revision"
+msgstr "Beim Zurückgehen auf eine alte Version"
+
+#: revisioning_triggers_actions.inc:26
+msgid "When unpublishing the current revision"
+msgstr "Bei der Rücknahme der Veröffentlichung der aktuellen Version"
+
+#: revisioning_triggers_actions.inc:51;83
+#: revisioning.module:275;300
+msgid "view"
+msgstr "Ansicht"
+
+#: revisioning_triggers_actions.inc:65
+msgid "Publish the most recent pending revision."
+msgstr "Die neueste ausstehende Version veröffentlichen."
+
+#: revisioning_triggers_actions.inc:50;82
+#: revisioning.module:0
+msgid "revisioning"
+msgstr ""
+
+#: revisioning_triggers_actions.inc:50
+msgid "%op trigger is actioning @aids"
+msgstr ""
+
+#: revisioning_triggers_actions.inc:82
+msgid "Executing publish_latest_revision action for @type %title"
+msgstr "Aktion publish_latest_revision für @type %title wird ausgeführt"
+
+#: revisioning.module:18
+msgid "To edit, publish or delete one of the revisions below, click on its saved date."
+msgstr "Um eine der unten stehenden Versionen zu bearbeiten, veröffentlichen oder löschen muss auf das Speicherdatum geklickt werden."
+
+#: revisioning.module:134;147
+msgid "New revisions in moderation"
+msgstr "Neue Version in Moderation"
+
+#: revisioning.module:164
+msgid "Initial revision created and published."
+msgstr "Erste Version erstellt und veröffentlicht."
+
+#: revisioning.module:167
+msgid "Initial revision created, pending publication."
+msgstr "Erste Version erstellt, Veröffentlichung steht an"
+
+#: revisioning.module:180
+msgid "Please note there is one revision more recent than the one you are about to edit."
+msgstr "Es gibt eine Version, die neuer ist als die zum Bearbeiten ausgewählte."
+
+#: revisioning.module:183
+msgid "Please note there are !count revisions more recent than the one you are about to edit."
+msgstr "Es gibt !count Versionen, die neuer sind als die zum Bearbeiten ausgewählte."
+
+#: revisioning.module:212
+msgid "Your changes are now current as moderation is switched off for this content."
+msgstr "Die Änderungen sind jetzt aktuell, da Moderation für diesen Inhalt ausgeschaltet ist."
+
+#: revisioning.module:233
+msgid "Are you sure you want to publish this revision of %title?"
+msgstr "Soll diese Version von %title wirklich veröffentlicht werden?"
+
+#: revisioning.module:235
+msgid "Publishing this revision will make it visible to the public."
+msgstr "Das Veröffentlichen dieser Version macht sie öffentlich sichtbar."
+
+#: revisioning.module:236
+msgid "Publish"
+msgstr "Veröffentlichen"
+
+#: revisioning.module:236;262
+msgid "Cancel"
+msgstr "Abbrechen"
+
+#: revisioning.module:259
+msgid "Are you sure you want to unpublish %title?"
+msgstr "Soll die Veröffentlichung von %title wirklich zurückgenommen werden?"
+
+#: revisioning.module:261
+msgid "Unpublishing will remove this content from public view."
+msgstr "Nach dem Zurücknehmen der Veröffentlichung ist dieser Inhalt nicht mehr öffentlich sichtbar."
+
+#: revisioning.module:262
+msgid "Unpublish"
+msgstr "Veröffentlichung zurücknehmen"
+
+#: revisioning.module:274
+msgid "%title has been unpublished."
+msgstr "Die Veröffentlichung von %title wurde zurückgenommen."
+
+#: revisioning.module:299
+msgid "Revision has been published."
+msgstr "Version wurde veröffentlicht."
+
+#: revisioning.module:324
+msgid "\"!title\" has no pending revision to be published."
+msgstr "„!title“ hat keine ausstehende Version zum Veröffentlichen."
+
+#: revisioning.module:335
+msgid "There is a pending revision. Are you sure you want to revert to an older revision?"
+msgstr "Es gibt eine ausstehende Version. Soll wirklich auf eine ältere Version zurückgegangen werden?"
+
+#: revisioning.module:413
+msgid "Revisions of %title"
+msgstr "Versionen von %title"
+
+#: revisioning.module:422
+msgid "Unpublish current revision"
+msgstr "Veröffentlichung der aktuellen Version zurücknehmen"
+
+#: revisioning.module:425
+msgid "Delete all revisions"
+msgstr "Alle Versionen löschen"
+
+#: revisioning.module:428
+msgid "Revision"
+msgstr "Version"
+
+#: revisioning.module:430
+msgid "Term"
+msgstr "Begriff"
+
+#: revisioning.module:432
+msgid "Status"
+msgstr "Status"
+
+#: revisioning.module:438
+msgid " Saved !date by !username"
+msgstr "Gespeichert am !date von !username"
+
+#: revisioning.module:446
+msgid "current revision (published)"
+msgstr "aktuelle Version (veröffentlicht)"
+
+#: revisioning.module:446
+msgid "current revision (unpublished)"
+msgstr "aktuelle Version (nicht veröffentlicht)"
+
+#: revisioning.module:454
+msgid "pending moderation"
+msgstr "anstehende Moderation"
+
+#: revisioning.module:454;573
+msgid "old"
+msgstr "alt"
+
+#: revisioning.module:572
+msgid "current, published"
+msgstr "aktuell, veröffentlicht"
+
+#: revisioning.module:572
+msgid "current, unpublished"
+msgstr "aktuell, nicht veröffentlicht"
+
+#: revisioning.module:573
+msgid "pending"
+msgstr "anstehend"
+
+#: revisioning.module:577
+msgid "Displaying %revision revision of %title, last modified by !author on @date"
+msgstr "Anzeige der Version %revision von %title, zuletzt geändert von !author am @date"
+
+#: revisioning.module:591
+msgid "Compare revisions"
+msgstr "Versionen vergleichen"
+
+#: revisioning.module:596
+msgid "Edit this revision"
+msgstr "Diese Version bearbeiten"
+
+#: revisioning.module:601
+msgid "Publish this revision"
+msgstr "Diese Version veröffentlichen"
+
+#: revisioning.module:604
+msgid "Revert to this revision"
+msgstr "Zu dieser Version zurückgehen"
+
+#: revisioning.module:607
+msgid "Unpublish this revision"
+msgstr "Die Veröffentlichung dieser Version zurücknehmen"
+
+#: revisioning.module:611
+msgid "Delete this revision"
+msgstr "Diese Version löschen"
+
+#: revisioning.module:614
+msgid "Show all revisions"
+msgstr "Alle Versionen anzeigen"
+
+#: revisioning.module:275;300
+msgid "content"
+msgstr "Inhalt"
+
+#: revisioning.module:275
+msgid "Unpublished @type %title"
+msgstr "Veröffentlichung von @type %title zurückgenommen"
+
+#: revisioning.module:300
+msgid "Published rev #%revision of @type %title"
+msgstr "Version #%revision von @type %title veröffentlicht"
+
+#: revisioning.module:418
+msgid "This content has only one revision"
+msgid_plural "This content has @count revisions."
+msgstr[0] "Dieser Inhalt hat nur eine Version."
+msgstr[1] "Dieser Inhalt hat @count Versionen."
+
+#: revisioning.module:120
+msgid "edit revisions"
+msgstr "Versionen bearbeiten"
+
+#: revisioning.module:120
+msgid "publish revisions"
+msgstr "Versionen veröffentlichen"
+
+#: revisioning.module:120
+msgid "unpublish current revision"
+msgstr "Veröffentlichung der aktuellen Version zurücknehmen"
+
+#: revisioning.module:34
+msgid "Pending"
+msgstr "Anstehend"
+
+#: revisioning.info:0
+msgid "Revisioning"
+msgstr ""
+
+#: revisioning.info:0
+msgid "Allows content to be created and edited while remaining invisible to the public until reviewed and accepted by a moderator"
+msgstr "Ermöglicht das Erstellen und Bearbeiten von Inhalt, ohne dass er öffentlich sichtbar wird, bevor er von einem Moderatur durchgesehen und akzeptiert wird."

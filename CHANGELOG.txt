@@ -11,3 +11,9 @@ Initial drupal 6 release.
 No error when Trigger module isn't installed.
 Improved translatability.
 Fixed &$ ref in (line 350).
+
+6.x-1.2
+=======
+Only display content info when NO teaser is requested via hook_node_api('view').
+Fixed broken link shown in watchdog message when trigger is invoking action.
+Added German translations and .pot file.

@@ -169,11 +169,12 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
       return;
 
     case 'view':
-      _handle_view_op($node);
+      if (!$teaser) {
+        _handle_view_op($node);
+      }
       return;
   }
-  $last_arg = arg(count(arg()) - 1);
-  if ($last_arg == 'edit') {
+  if (end(arg()) == 'edit') {
     if ($op == 'prepare') {
       $count = _number_of_revisions_newer_than($node->vid, $node->nid);
       if ($count == 1) {
