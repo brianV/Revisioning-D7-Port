@@ -181,7 +181,7 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
         drupal_set_message(_get_node_details($node));
         global $theme_engine;
         if (!isset($theme_engine)) {
-          theme_content_menu($node);
+          _theme_content_menu($node);
         }
       }
       return;
