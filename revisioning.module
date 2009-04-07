@@ -6,7 +6,7 @@
  * Module to allow editing of current or old revisions while current revision
  * remains public until reviewed and accepted by a moderator.
  */
-
+require_once drupal_get_path('module', 'revisioning') .'/revisioning_theme.inc';
 require_once drupal_get_path('module', 'revisioning') .'/revisioning_triggers_actions.inc';
 
 /**
@@ -15,8 +15,18 @@ require_once drupal_get_path('module', 'revisioning') .'/revisioning_triggers_ac
 function revisioning_help($path, $arg) {
   switch ($path) {
     case 'node/%/revisions':
-      return t('To edit, publish or delete one of the revisions below, click on its saved date.');
+      return '<p>'. t('To edit, publish or delete one of the revisions below, click on its saved date.') .'</p>';
   }
+}
+
+/**
+ * Implementation of hook_perm().
+ *
+ * Revisioning permissions. Note that permissions to view, revert and delete
+ * revisions already exist in node.module.
+ */
+function revisioning_perm() {
+  return array('edit revisions', 'publish revisions', 'unpublish current revision');
 }
 
 /**
@@ -32,7 +42,7 @@ function revisioning_menu() {
   // and make it the default
   $items['content/pending'] = array(
     'title' => 'Pending',
-    'page callback' => 'revisioning_pending_nodes',
+    'page callback' => '_show_pending_nodes',
     'access arguments' => array('access content summary'),
     'weight' => -20
   );
@@ -77,12 +87,13 @@ function revisioning_menu() {
 /**
  * Implementation of hook_menu_alter().
  *
- * Modify menu items defined in other modules (in particular the Module Grants module).
+ * Modify menu items defined in other modules (in particular the Node and
+ * Module Grants modules).
  */
 function revisioning_menu_alter(&$items) {
 
   // Change 'My content' default tab from Editable to Pending
-  $items['content']['page callback'] = 'revisioning_pending_nodes';
+  $items['content']['page callback'] = '_show_pending_nodes';
   $items['content/editable']['type'] = MENU_LOCAL_TASK;
   $items['content/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
 
@@ -90,15 +101,17 @@ function revisioning_menu_alter(&$items) {
   $items['node/%node/view']['title'] = 'View current';
 
   // Remove "Edit" as a tab and redirect existing edit links to
-  // revisioning_node_revisions() to ensure user picks desired revision first.
-  $items['node/%node/edit']['page callback'] = 'revisioning_node_revisions';
+  // _show_node_revisions() to ensure user picks desired revision first.
+  $items['node/%node/edit']['page callback'] = '_show_node_revisions';
   $items['node/%node/edit']['page arguments'] = array(1);
   $items['node/%node/edit']['type'] = MENU_CALLBACK;
 
-  // "Revisions" tab remains but points to new page callback, which ensures users
-  // pick the desired revision to view, edit, publish, revert, unpublish, delete.
-  $items['node/%node/revisions']['page callback'] = 'revisioning_node_revisions';
-  $items['node/%node/revisions']['page arguments'] = array(1);
+  if (!module_exists("diff")) {
+    // "Revisions" tab remains but points to new page callback, which ensures users
+    // pick the desired revision to view, edit, publish, revert, unpublish, delete.
+    $items['node/%node/revisions']['page callback'] = '_show_node_revisions';
+    $items['node/%node/revisions']['page arguments'] = array(1);
+  }
 
   // Point /%node/revisions/%/view page to same callback as /%node/view for a
   // consistent view of current and other revisions
@@ -111,13 +124,18 @@ function revisioning_menu_alter(&$items) {
 }
 
 /**
- * Implementation of hook_perm().
- *
- * Revisioning permissions. Note that permissions to view, revert and delete
- * revisions already exist in node.module.
+ * Display a list of nodes that have pending revisions in a themed table.
  */
-function revisioning_perm() {
-  return array('edit revisions', 'publish revisions', 'unpublish current revision');
+function _show_pending_nodes() {
+  return theme('nodes_summary', get_nodes('update', TRUE)); // see: module_grants
+}
+
+/**
+ * Display all revisions of the supplied node in a themed table with
+ * links for the permitted operations above it.
+ */
+function _show_node_revisions($node) {
+  return _theme_revisions_summary($node);
 }
 
 /**
@@ -152,11 +170,20 @@ function revisioning_form_alter(&$form, $form_state, $form_id) {
  * Implementation of hook_nodeapi().
  */
 function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
+  $args = arg();
+  // Only interested in URIs that start with "node/<nid>"
+  if ($args[0] != 'node' || !is_numeric($args[1])) {
+    return;
+  }
   switch ($op) {
-    case 'alter':
-    case 'delete':
-    case 'load':
-    case 'validate':
+    case 'alter': // called just after $node object is fully built
+      if (module_grants_node_revision_access('view revisions', $node)) {
+        drupal_set_message(_get_node_details($node));
+        global $theme_engine;
+        if (!isset($theme_engine)) {
+          theme_content_menu($node);
+        }
+      }
       return;
 
     case 'insert':
@@ -168,19 +195,19 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
       }
       return;
 
+    case 'delete':
+    case 'load':
+    case 'validate':
     case 'view':
-      if (!$teaser) {
-        _handle_view_op($node);
-      }
       return;
   }
-  if (end(arg()) == 'edit') {
+  if (end($args) == 'edit') {
     if ($op == 'prepare') {
       $count = _number_of_revisions_newer_than($node->vid, $node->nid);
       if ($count == 1) {
         drupal_set_message(t('Please note there is one revision more recent than the one you are about to edit.'), 'warning');
       }
-      else if ($count > 1) {
+      elseif ($count > 1) {
         drupal_set_message(t('Please note there are !count revisions more recent than the one you are about to edit.', array('!count' => $count)), 'warning');
       }
     }
@@ -365,101 +392,6 @@ function revisioning_revert_confirm_submit($form, &$form_state) {
 }
 
 /**
- * Menu callback to list nodes that have pending content.
- */
-function revisioning_pending_nodes() {
-  return theme('revisioning_pending_nodes');
-}
-
-/**
- * Implementation of hook_theme().
- */
-function revisioning_theme() {
-  return array(
-    'revisioning_pending_nodes' => array(
-      'arguments' => array(),
-    ),
-  );
-}
-
-/**
- * Display a list of nodes that have pending revisions in a themed table.
- *
- * @ingroup themeable
- */
-function theme_revisioning_pending_nodes() {
-  $nodes = get_nodes('update', TRUE);
-  return _theme_nodes($nodes);
-}
-
-/**
- * Display all revisions of the supplied node in a themed table.
- *
- */
-function revisioning_node_revisions($node) {
-  return _theme_node_revisions($node);
-}
-
-/**
- * Theme the revisions of the supplied node in a table.
- *
- * @param $node
- *   Node whose revisions to display
- * @param $show_terms
- *   Whether to display a column showing each revision's taxonomy term(s)
- * @return
- *   Themed table HTML
- */
-function _theme_node_revisions($node) {
-  drupal_set_title(t('Revisions of %title', array('%title' => $node->title)));
-  $show_taxonomy_terms = module_exists('taxonomy');
-
-  $revisions = _get_all_revisions_for_node($node->nid, $show_taxonomy_terms);
-
-  $message = format_plural(count($revisions), 'This content has only one revision', 'This content has @count revisions.');
-
-  $links = array();
-  if ($node->status && module_grants_node_revision_access('unpublish current revision', $node)) {
-    $links[] = l(t('Unpublish current revision'), "node/$node->nid/unpublish");
-  }
-  if (module_grants_node_revision_access('delete revisions', $node)) {
-    $links[] = l(t('Delete all revisions'), "node/$node->nid/delete");
-  }
-  drupal_set_message(empty($links) ? $message : $message . theme('item_list', $links));
-  $header = array(t('Revision'));
-  if ($show_taxonomy_terms) {
-    $header[] = t('Term');
-  }
-  $header[] = t('Status');
-  $rows = array();
-
-  foreach ($revisions as $revision) {
-    $row = array();
-    $base_url = "node/$node->nid/revisions/$revision->vid";
-    $t = t(' Saved !date by !username', array('!date' => l(format_date($revision->timestamp, 'small'), "$base_url/view"),
-                                              '!username' => theme('username', $revision)))
-         . ($revision->log != '' ? '<p class="revision-log">'. filter_xss($revision->log) .'</p>' : '');
-    if ($revision->vid == $node->vid) {
-      $row[] = array('data' => $t, 'class' => 'revision-current');
-      if ($show_taxonomy_terms) {
-        $row[] = array('data' => $revision->term, 'class' => 'revision-current');
-      }
-      $row[] = array('data' => theme('placeholder', $revision->status ? t('current revision (published)') : t('current revision (unpublished)')),
-                     'class' => 'revision-current');
-    }
-    else {
-      $row[] = array('data' => $t);
-      if ($show_taxonomy_terms) {
-        $row[] = array('data' => $revision->term);
-      }
-      $row[] = array('data' => ($revision->vid > $node->vid) ? t('pending moderation') : t('old'));
-    }
-    $rows[] = $row;
-  }
-  return theme('table', $header, $rows);
-}
-
-/**
  * Return a count of the number of revisions newer than the supplied vid.
  *
  * @param $vid
@@ -542,17 +474,47 @@ function _get_all_revisions_for_node($nid, $include_taxonomy_terms = FALSE) {
 }
 
 /**
- * Handle the 'view' operation on the node, displaying links as per the user's
- * access permission.
+ * Return a string with details about the node that is about to be displayed.
  *
  * Called from revisioning_nodeapi().
  *
  * @param $node
  *   The node that is about to be viewed
  * @return
- *   nothing
+ *   A translatable message containing details about the node
  */
-function _handle_view_op($node) {
+function _get_node_details($node) {
+  // Get username for the revision rather than the original node.
+  $revision_author = user_load($node->revision_uid);
+  $published = $node->status ? t('current, published') : t('current, unpublished');
+  $placeholder_data =
+    array('%current' => $published,
+          '%title' => check_plain($node->title),
+          '!author' => theme('username', $revision_author),
+          '@date' => format_date($node->revision_timestamp, 'small'));
+  $current_revision = _get_current_revision($node->nid);
+  $is_current = ($node->vid == $current_revision->vid);
+  $is_pending = ($node->vid > $current_revision->vid);
+  // $message coded with some duplication to improve translatability
+  if ($is_current) {
+    $message = t('Displaying %current revision of %title, last modified by !author on @date', $placeholder_data);
+  }
+  else {
+    $message = $is_pending
+      ? t('Displaying pending revision of %title, last modified by !author on @date', $placeholder_data)
+      : t('Displaying old revision of %title, last modified by !author on @date', $placeholder_data);
+  }
+  return $message;
+}
+
+/**
+ * Return an array of hyperlinks representing the operations the logged-in user
+ * is allowed to perform on the supplied node.
+ *
+ * @param $node
+ * @return array of hyperlinks
+ */
+function generate_links_according_to_permissions($node) {
   $access_view   = module_grants_node_revision_access('view revisions', $node);
   $access_edit   = module_grants_node_revision_access('edit revisions', $node);
   $access_delete = module_grants_node_revision_access('delete revisions', $node);
@@ -564,39 +526,28 @@ function _handle_view_op($node) {
 
   $current_revision = _get_current_revision($node->nid);
   $is_current = ($node->vid == $current_revision->vid);
-  // Note that definition of pending is based on vid, not timestamp
   $is_pending = ($node->vid > $current_revision->vid);
 
   $links = array(); // Links to compare/revert/publish/delete revisions
   if ($access_view) {
-    $revision = $is_current
-      ? ($node->status ? t('current, published') : t('current, unpublished'))
-      : ($is_pending ? t('pending') : t('old'));
-    // Get username for the revision rather than the original node.
-    $revision_author = user_load($node->revision_uid);
-
-    $message = t('Displaying %revision revision of %title, last modified by !author on @date',
-                  array('%revision' => $revision,
-                        '%title' => check_plain($node->title),
-                        '!author' => theme('username', $revision_author),
-                        '@date' => format_date($node->revision_timestamp, 'small')));
-
     // Add a link to the diff if we have Diff module installed.
-    if (module_exists('diff')) {
+    if (!$is_current && module_exists('diff')) {
+      $comparison_url = "node/$node->nid/revisions/view/";
+      // Make sure that latest of the two revisions is on the right
       if ($is_pending) {
-        $diff_link = "node/$node->nid/revisions/view/$current_revision->vid/$node->vid";
+        $comparison_url .= "$current_revision->vid/$node->vid";
       }
       else {
-        $diff_link = "node/$node->nid/revisions/view/$node->vid/$current_revision->vid";
+        $comparison_url .= "$node->vid/$current_revision->vid";
       }
-      $links[] = l(t('Compare revisions'), $diff_link);
+      $links[] = l(t('Compare to current'), $comparison_url);
     }
   }
   $base_url = "node/$node->nid/revisions/$node->vid";
   if ($access_edit) {
     $links[] = l(t('Edit this revision'), "$base_url/edit");
   }
-  // If this revision is pending or current but not published, show a
+  // If this revision is pending or current but not published, return a
   // publish link, otherwise show a revert link.
   if ($access_publish && ($is_pending || ($is_current && !$node->status))) {
     $links[] = l(t('Publish this revision'), "$base_url/publish");
@@ -611,13 +562,12 @@ function _handle_view_op($node) {
     // Don't provide link to delete current -- node must point to a revision.
     $links[] = l(t('Delete this revision'), "$base_url/delete");
   }
-  if ($access_view) {
+  $args = arg();
+  if ($access_view && $args[2] == 'revisions') {
+    // Don't provide link to 'Show all revisions' when Revisions tab is available
     $links[] = l(t('Show all revisions'), "node/$node->nid/revisions");
   }
-
-  if ($message) {
-    drupal_set_message($message . theme('item_list', $links));
-  }
+  return $links;
 }
 
 /**

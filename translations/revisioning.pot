@@ -181,7 +181,13 @@ msgid "pending"
 msgstr ""
 
 #: revisioning.module:577
-msgid "Displaying %revision revision of %title, last modified by !author on @date"
+msgid "Displaying %current revision of %title, last modified by !author on @date"
+msgstr ""
+
+msgid "Displaying pending revision of %title, last modified by !author on @date"
+msgstr ""
+
+msgid "Displaying old revision of %title, last modified by !author on @date"
 msgstr ""
 
 #: revisioning.module:591

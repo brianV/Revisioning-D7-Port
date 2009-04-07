@@ -33,6 +33,8 @@ Unlike RM, Revisioning does not require any additional database tables.
 INSTALLATION
 ============
 0. Install the Module Grants module as per its README instructions.
+   Optionally install the Diff module if you want to compare revisions and
+   highlight the differences.
 1. Place the "revisioning" folder in your "sites/all/modules" directory.
 2. Enable the module under Administer >> Site building >> Modules.
 3. Under Administer >> Content >> Content types, click "edit" next to the

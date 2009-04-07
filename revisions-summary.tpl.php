@@ -1,0 +1,18 @@
+<?php
+// $Id$
+/**
+ * @file
+ * revisions-summary.tpl.php
+ * Template to handle layout details of the submenu that appears above the
+ * summary of node revisions.
+ *
+ * Variables available:
+ * - $links: an array of <a>-tags
+ * - $content: summary of node revisions (as a table)
+ */
+?>
+<div class="submenu submenu-revisions">
+  <?php print '<strong>'. t('Operations: ') .'</strong>'. implode(' <strong>|</strong> ', $links); ?>
+</div>
+<hr/>
+<?php print $content;

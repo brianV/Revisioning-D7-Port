@@ -174,19 +174,21 @@ msgstr "alt"
 
 #: revisioning.module:572
 msgid "current, published"
-msgstr "aktuell, veröffentlicht"
+msgstr "aktuelle, veröffentlichte"
 
 #: revisioning.module:572
 msgid "current, unpublished"
-msgstr "aktuell, nicht veröffentlicht"
-
-#: revisioning.module:573
-msgid "pending"
-msgstr "anstehend"
+msgstr "aktuelle, nicht veröffentlichte"
 
 #: revisioning.module:577
-msgid "Displaying %revision revision of %title, last modified by !author on @date"
-msgstr "Anzeige der Version %revision von %title, zuletzt geändert von !author am @date"
+msgid "Displaying %current revision of %title, last modified by !author on @date"
+msgstr "Anzeige der %current Version von %title, zuletzt geändert von !author am @date"
+
+msgid "Displaying pending revision of %title, last modified by !author on @date"
+msgstr "Anzeige der anstehende Version von %title, zuletzt geändert von !author am @date"
+
+msgid "Displaying old revision of %title, last modified by !author on @date"
+msgstr "Anzeige der veraltete Version %revision von %title, zuletzt geändert von !author am @date"
 
 #: revisioning.module:591
 msgid "Compare revisions"
