@@ -32,3 +32,7 @@ o Further improved translatability (requested by herzi, #420258)
 =======
 o Change of look & feel w.r.t to links above content.
 o Made theming more flexible; use CSS
+
+6.x-2.1
+=======
+o Tidied up theming. Removed obsolete file.
