@@ -11,7 +11,7 @@
  * - $content: summary of node revisions (as a table)
  */
 ?>
-<div class="submenu submenu-revisions">
+<div class="submenu revisions">
   <?php print '<strong>'. t('Operations: ') .'</strong>'. implode(' <strong>|</strong> ', $links); ?>
 </div>
 <hr/>

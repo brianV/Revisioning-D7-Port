@@ -28,7 +28,7 @@ o Don't show 'Show all revisions' link when 'Revisions' tab is also visible
 =======
 o Further improved translatability (requested by herzi, #420258)
 
-6.2-2.0
+6.x-2.0
 =======
 o Change of look & feel w.r.t to links above content.
-o Made theming more flexible.
+o Made theming more flexible; use CSS

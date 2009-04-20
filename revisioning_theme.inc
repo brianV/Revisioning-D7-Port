@@ -125,7 +125,7 @@ function theme_table_revisions($header, $rows) {
  * hyperlinks that operate on the content shown, provided the theme is rendered
  * through an ENGINE -- Chameleon, for instance, is NOT.
  * Earlier versions did this by (ab)using drupal_set_message($links).
- * Here we prepend the links, themed as a 'submenu_node', to the content. 
+ * Here we prepend the links, themed as a 'revision', to the content. 
  * This ensures the links are visible in all existing templates.
  * 
  * Uses the following subthemes:

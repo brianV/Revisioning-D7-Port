@@ -11,5 +11,5 @@
  */
 ?>
 <?php
-  include "submenu-revision.tpl.php";
+  include "revision-submenu.tpl.php";
   print $content;

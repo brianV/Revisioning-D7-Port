@@ -1,10 +1,11 @@
 /* $Id$ */
 
-.submenu-revision {
+.table-revisions .odd {
 }
 
-.submenu-revisions {
+.submenu.revision {
 }
 
-.table-revisions {
+.submenu.revisions {
 }
+
