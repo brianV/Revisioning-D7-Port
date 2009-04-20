@@ -12,7 +12,7 @@
  */
 ?>
 <div class="submenu revisions">
-  <?php print '<strong>'. t('Operations: ') .'</strong>'. implode(' <strong>|</strong> ', $links); ?>
+  <?php print implode(' <strong>|</strong> ', $links); ?>
 </div>
 <hr/>
 <?php print $content;
