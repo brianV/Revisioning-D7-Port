@@ -3,7 +3,7 @@
 
 /**
  * @file
- * Include file for revisioning.module, dealing with all theming aspects.
+ * Include file for revisioning.module; deals with all theming aspects.
  */
 
 /**
@@ -13,9 +13,9 @@
  */
 function revisioning_theme() {
   return array(
-    'submenu_revision' => array(
+    'revision_submenu' => array(
       'arguments' => array('links' => NULL),
-      'template' => 'submenu-revision', // submenu-revision.tpl.php
+      'template' => 'revision-submenu', // revision-submenu.tpl.php
     ),
     'revision' => array(
       'arguments' => array('links' => NULL, 'content' => NULL),
@@ -129,12 +129,12 @@ function theme_table_revisions($header, $rows) {
  * This ensures the links are visible in all existing templates.
  * 
  * Uses the following subthemes:
- * o submenu-node.tpl.php, falling back to theme.inc/theme_submenu() if not defined
+ * o revision.tpl.php
  *
  * @param $variables
  * @return void
  */
-function revisioning_preprocess_node(&$variables, $hook) {
+function revisioning_preprocess_node(&$variables) {
   $css_path = drupal_get_path('module', 'revisioning') .'/revisioning.css';
   drupal_add_css($css_path, 'module', 'all', FALSE); // also loads /revisioning-rtl.css
   $links = generate_links_according_to_permissions($variables['node']);
@@ -142,11 +142,11 @@ function revisioning_preprocess_node(&$variables, $hook) {
 }
 
 /**
- * Renderes the submenu links as part of the content. Use for themes like 
+ * Renders the submenu links as part of the content. Use for themes like
  * Chameleon that don't employ a theme engine.
  * 
  * Uses the following subtheme:
- * o submenu-revision.tpl.php, falling back to theme.inc/theme_submenu() if not defined
+ * o revision-submenu.tpl.php
  * 
  * @param $node
  * @return themed HTML
@@ -156,5 +156,5 @@ function _theme_content_menu(&$node) {
   $css_path = drupal_get_path('module', 'revisioning') .'/revisioning.css';
   drupal_add_css($css_path, 'module', 'all', FALSE); // also loads /revisioning-rtl.css
   $links = generate_links_according_to_permissions($node);
-  $node->body = theme(array('submenu_revision', 'submenu'), $links) . $node->body;
+  $node->body = theme(array('revision_submenu', 'submenu'), $links) . $node->body;
 }
