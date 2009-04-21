@@ -36,3 +36,8 @@ o Made theming more flexible; use CSS
 6.x-2.1
 =======
 o Tidied up theming. Removed obsolete file.
+
+6.x-2.2
+=======
+o Removed revisioning operations from authenticated user's home page (occurred
+  for themes employing engines).

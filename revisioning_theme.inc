@@ -135,6 +135,11 @@ function theme_table_revisions($header, $rows) {
  * @return void
  */
 function revisioning_preprocess_node(&$variables) {
+  $args = arg();
+  // Only interested in URIs that start with "node/<nid>"
+  if ($args[0] != 'node' || !is_numeric($args[1])) {
+    return;
+  }
   $css_path = drupal_get_path('module', 'revisioning') .'/revisioning.css';
   drupal_add_css($css_path, 'module', 'all', FALSE); // also loads /revisioning-rtl.css
   $links = generate_links_according_to_permissions($variables['node']);
