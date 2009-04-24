@@ -10,7 +10,9 @@
  * - $links: an array of <a>-tags
  */
 ?>
-<div class="submenu revision">
-  <?php print implode(' | ', $links); ?>
-</div>
-<hr/>
+<?php if ($links) { ?>
+  <div class="submenu revision">
+    <?php print implode(' | ', $links); ?>
+  </div>
+  <hr/>
+<?php }

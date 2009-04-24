@@ -11,8 +11,10 @@
  * - $content: summary of node revisions (as a table)
  */
 ?>
-<div class="submenu revisions">
-  <?php print implode(' <strong>|</strong> ', $links); ?>
-</div>
-<hr/>
+<?php if ($links) { ?>
+  <div class="submenu revisions">
+    <?php print implode(' <strong>|</strong> ', $links); ?>
+  </div>
+  <hr/>
+<?php } ?>
 <?php print $content;
