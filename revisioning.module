@@ -106,9 +106,9 @@ function revisioning_menu_alter(&$items) {
   $items['node/%node/edit']['page arguments'] = array(1);
   $items['node/%node/edit']['type'] = MENU_CALLBACK;
 
+  // "Revisions" tab remains but points to new page callback, which ensures users
+  // pick the desired revision to view, edit, publish, revert, unpublish, delete.
   if (!module_exists("diff")) {
-    // "Revisions" tab remains but points to new page callback, which ensures users
-    // pick the desired revision to view, edit, publish, revert, unpublish, delete.
     $items['node/%node/revisions']['page callback'] = '_show_node_revisions';
     $items['node/%node/revisions']['page arguments'] = array(1);
   }
@@ -140,13 +140,15 @@ function _show_node_revisions($node) {
 
 /**
  * Implementation of hook_form_alter().
+ *
+ * On node edit form, add the "New revisions in moderation" tick-box.
  */
-function revisioning_form_alter(&$form, $form_state, $form_id) {
-  // On content edit form, add the "New revisions in moderation" option.
+function revisioning_form_alter(&$form, &$form_state, $form_id) {
+  // Note that $form_id = <content_type>_$form['#id']
   if (isset($form['#id']) && $form['#id'] == 'node-form') {
     $default_value = in_array('revision_moderation', variable_get("node_options_{$form['type']['#value']}", array('status', 'promote')));
     // Only show the checkbox if user has the 'administer nodes' permission
-    if (!empty($node->revision) || user_access('administer nodes')) {
+    if (user_access('administer nodes')) {
       $form['revision_information']['revision_moderation'] = array(
         '#type' => 'checkbox',
         '#title' => t('New revisions in moderation'),
@@ -160,10 +162,15 @@ function revisioning_form_alter(&$form, $form_state, $form_id) {
       );
     }
   }
-  // Also add option to node settings form
-  elseif ($form_id == 'node_type_form') {
-    $form['workflow']['node_options']['#options']['revision_moderation'] = t('New revisions in moderation');
-  }
+}
+
+/**
+ * Implementation of hook_node_type_form_alter().
+ *
+ * On content type edit form, add the "New revisions in moderation" tick-box.
+ */
+function revisioning_form_node_type_form_alter(&$form, &$form_state) {
+  $form['workflow']['node_options']['#options']['revision_moderation'] = t('New revisions in moderation');
 }
 
 /**
@@ -514,7 +521,27 @@ function _get_node_details($node) {
  * @param $node
  * @return array of hyperlinks
  */
-function generate_links_according_to_permissions($node) {
+function generate_node_links_according_to_permissions($node) {
+  $access_unpublish = module_grants_node_revision_access('unpublish current revision', $node);
+  $access_delete    = module_grants_node_revision_access('delete revisions', $node);
+  $links = array();
+  if ($node->status && $access_unpublish) {
+    $links[] = l(t('Unpublish current revision'), "node/$node->nid/unpublish");
+  }
+  if ($access_delete) {
+    $links[] = l(t('Delete all revisions'), "node/$node->nid/delete");
+  }
+  return $links;
+}
+
+/**
+ * Return an array of hyperlinks representing the operations the logged-in user
+ * is allowed to perform on the supplied revision.
+ *
+ * @param $node
+ * @return array of hyperlinks
+ */
+function generate_revision_links_according_to_permissions($node) {
   $access_view   = module_grants_node_revision_access('view revisions', $node);
   $access_edit   = module_grants_node_revision_access('edit revisions', $node);
   $access_delete = module_grants_node_revision_access('delete revisions', $node);

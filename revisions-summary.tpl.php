@@ -7,14 +7,14 @@
  * summary of node revisions.
  *
  * Variables available:
- * - $links: an array of <a>-tags
+ * - $submenu_links: an array of <a>-tags
  * - $content: summary of node revisions (as a table)
  */
 ?>
-<?php if ($links) { ?>
+<?php if ($submenu_links): ?>
   <div class="submenu revisions">
-    <?php print implode(' <strong>|</strong> ', $links); ?>
+    <?php print implode(' <strong>|</strong> ', $submenu_links); ?>
   </div>
   <hr/>
-<?php } ?>
+<?php endif; ?>
 <?php print $content;

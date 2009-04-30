@@ -1,5 +1,6 @@
 /* $Id$ */
 
+
 .table-revisions .odd {
 }
 
@@ -9,3 +10,13 @@
 .submenu.revisions {
 }
 
+tr td.revision-current {
+ /* overrides rule in node/node.css */
+}
+
+.revision-pending {
+  background-color: pink;
+}
+
+.revision-old {
+}

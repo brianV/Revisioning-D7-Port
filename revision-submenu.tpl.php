@@ -7,12 +7,12 @@
  * body text of the displayed revision.
  *
  * Variables available:
- * - $links: an array of <a>-tags
+ * - $submenu_links: an array of <a>-tags
  */
 ?>
-<?php if ($links) { ?>
+<?php if ($submenu_links): ?>
   <div class="submenu revision">
-    <?php print implode(' | ', $links); ?>
+    <?php print implode(' | ', $submenu_links); ?>
   </div>
   <hr/>
-<?php }
+<?php endif; ?>

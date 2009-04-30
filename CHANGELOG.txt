@@ -41,3 +41,8 @@ o Tidied up theming. Removed obsolete file.
 =======
 o Removed revisioning operations from authenticated user's home page (occurred
   for themes employing engines).
+  
+6.x-2.3
+=======
+o Don't display horizontal rule when submenu is empty
+o Introduced CSS classes "revision-pending" and "revision-old"

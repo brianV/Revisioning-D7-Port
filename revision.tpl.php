@@ -6,7 +6,7 @@
  * Template to render the body of the revision and the menu above it.
  *
  * Variables available:
- * - $links: an array of <a>-tags, passed on to revision-submenu.tpl.php
+ * - $submenu_links: an array of <a>-tags, passed on to revision-submenu.tpl.php
  * - $content: body text of the node revision
  */
 ?>
