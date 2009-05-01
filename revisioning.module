@@ -108,19 +108,23 @@ function revisioning_menu_alter(&$items) {
 
   // "Revisions" tab remains but points to new page callback, which ensures users
   // pick the desired revision to view, edit, publish, revert, unpublish, delete.
-  if (!module_exists("diff")) {
-    $items['node/%node/revisions']['page callback'] = '_show_node_revisions';
-    $items['node/%node/revisions']['page arguments'] = array(1);
-  }
+  $items['node/%node/revisions']['page callback'] = '_show_node_revisions';
+  $items['node/%node/revisions']['page arguments'] = array(1);
 
   // Point /%node/revisions/%/view page to same callback as /%node/view for a
   // consistent view of current and other revisions
   $items['node/%node/revisions/%/view']['page callback'] = 'node_page_view'; // as used by /%node/view
   $items['node/%node/revisions/%/view']['page arguments'] = array(1);
 
-  // Override existing callback to insert trigger, pulled upon reverting
+  // Override existing callback so that we can insert trigger pulled upon reverting
   $items['node/%node/revisions/%/revert']['page callback'] = 'drupal_get_form';
   $items['node/%node/revisions/%/revert']['page arguments'] = array('revisioning_revert_confirm', 1);
+  
+  // If Diff module is enabled, make sure it uses correct access callback
+  if (module_exists('diff')) {
+    $items['node/%node/revisions/view/%/%']['access callback'] = 'module_grants_node_revision_access';
+    $items['node/%node/revisions/view/%/%']['access arguments'] = array('view revisions', 1);
+  }
 }
 
 /**

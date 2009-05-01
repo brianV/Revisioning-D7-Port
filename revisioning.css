@@ -1,22 +1,21 @@
 /* $Id$ */
 
-
-.table-revisions .odd {
+.table-revisions tr.odd {
 }
 
+.table-revisions tr.even {
+}
 .submenu.revision {
 }
 
 .submenu.revisions {
 }
 
-tr td.revision-current {
- /* overrides rule in node/node.css */
+.revision-current td {
+  background-color: #ffc; /* pale yellow */
 }
 
-.revision-pending {
-  background-color: pink;
+.revision-pending td {
+  background-color: #fcc; /* pale pink */
 }
 
-.revision-old {
-}
