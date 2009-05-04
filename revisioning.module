@@ -103,18 +103,18 @@ function revisioning_menu_alter(&$items) {
   // Remove "Edit" as a tab and redirect existing edit links to
   // _show_node_revisions() to ensure user picks desired revision first.
   $items['node/%node/edit']['page callback'] = '_show_node_revisions';
-  $items['node/%node/edit']['page arguments'] = array(1);
+//$items['node/%node/edit']['page arguments'] = array(1);
   $items['node/%node/edit']['type'] = MENU_CALLBACK;
 
   // "Revisions" tab remains but points to new page callback, which ensures users
   // pick the desired revision to view, edit, publish, revert, unpublish, delete.
   $items['node/%node/revisions']['page callback'] = '_show_node_revisions';
-  $items['node/%node/revisions']['page arguments'] = array(1);
+//$items['node/%node/revisions']['page arguments'] = array(1);
 
   // Point /%node/revisions/%/view page to same callback as /%node/view for a
   // consistent view of current and other revisions
   $items['node/%node/revisions/%/view']['page callback'] = 'node_page_view'; // as used by /%node/view
-  $items['node/%node/revisions/%/view']['page arguments'] = array(1);
+//$items['node/%node/revisions/%/view']['page arguments'] = array(1);
 
   // Override existing callback so that we can insert trigger pulled upon reverting
   $items['node/%node/revisions/%/revert']['page callback'] = 'drupal_get_form';
@@ -156,13 +156,14 @@ function revisioning_form_alter(&$form, &$form_state, $form_id) {
       $form['revision_information']['revision_moderation'] = array(
         '#type' => 'checkbox',
         '#title' => t('New revisions in moderation'),
-        '#default_value' => $default_value,
+        '#default_value' => $default_value
       );
     }
     else {
+      // Don't show checkbox, set default on form
       $form['revision_moderation'] = array(
         '#type' => 'value',
-        '#value' => $default_value,
+        '#value' => $default_value
       );
     }
   }
@@ -230,9 +231,9 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
             // Save the vid for subsequent restore during 'update' op
             $node->original_vid = $current_revision->vid;
             $node->original_revision = $node->revision;
-            $pending = ($node->vid > $current_revision->vid) ||
-                       ($node->vid == $current_revision->vid && !$node->status);
-            if ($node->revision && $pending) {
+            $is_pending = ($node->vid > $current_revision->vid) ||
+                          ($node->vid == $current_revision->vid && !$node->status);
+            if ($node->revision && $is_pending) {
               // Not creating new revision as this revision is still pending
               $node->revision = FALSE;
             }

@@ -43,7 +43,7 @@ function revisioning_theme() {
  */
 function _theme_revisions_summary(&$node) {
   drupal_set_title(t('Revisions for %title', array('%title'=> $node->title)));
-  return drupal_get_form('revisioning_revisions_summary', $node);	
+  return drupal_get_form('revisioning_revisions_summary', $node->nid);	
 	
 }
 
@@ -53,17 +53,19 @@ function _theme_revisions_summary(&$node) {
  * two revisions for side-by-side comparison.
  * 
  * @param $form_state
- * @param $node
+ * @param $nid, the id of the node
  * @return form containing all data to be themed
  */
-function revisioning_revisions_summary($form_state, &$node) {
+function revisioning_revisions_summary($form_state, $nid) {
   $form = array();
-  // Note, all (plain) form fields must be in array('#value' => ) format.
-  // Store node id in hidden field, required in submit function.
-  $form['nid'] = array('#value' => $node->nid, '#type' => 'hidden');
+  
+  // #type=>'value' form field values will not appear in the HTML. Used to pass
+  // the node id to revisioning_revisions_summary_submit() and 
+  // theme_revisioning_revisions_summary().
+  $form['nid'] = array('#type' => 'value', '#value' => $nid);
 
   $show_taxonomy_terms = module_exists('taxonomy');
-  $revisions = _get_all_revisions_for_node($node->nid, $show_taxonomy_terms);
+  $revisions = _get_all_revisions_for_node($nid, $show_taxonomy_terms);
 
   drupal_set_message(format_plural(count($revisions),
     'This content has only one revision', 
@@ -72,8 +74,8 @@ function revisioning_revisions_summary($form_state, &$node) {
   $revision_ids = array();
   foreach ($revisions as $revision) {
     $vid = $revision->vid;
-    $revision_ids[$vid] = ''; 
-    $base_url = "node/$node->nid/revisions/$vid";
+    $revision_ids[$vid] = ''; // no text next to check box 
+    $base_url = "node/$nid/revisions/$vid";
 
     // First column: saved date + author    
     $first_cell = t('Saved !date by !username', 
@@ -82,12 +84,13 @@ function revisioning_revisions_summary($form_state, &$node) {
       . (empty($revision->log) ? '' : '<p class="revision-log">'. filter_xss($revision->log) .'</p>');
     $form['info'][$vid] = array('#value' => $first_cell);
     
-    // Term
+    // Third column: term
     if ($show_taxonomy_terms) {
       $form['term'][$vid] = array('#value' => $revision->term);
     }
   }
   if (count($revisions) >= 2 && module_exists('diff')) {
+    // Second column: check-boxes to select two revisions to compare
     $id1 = key($revision_ids);
     next($revision_ids);
     $id2 = key($revision_ids);
@@ -96,7 +99,8 @@ function revisioning_revisions_summary($form_state, &$node) {
       '#options' => $revision_ids,
       '#default_value' => array($id1, $id2)
     );
-    $form['submit'] = array('#value' => t('Compare'), '#type' => 'submit', );
+    // Submit button
+    $form['submit'] = array('#value' => t('Compare'), '#type' => 'submit');
   }
   return $form;
 }
@@ -110,11 +114,7 @@ function revisioning_revisions_summary($form_state, &$node) {
  */
 function revisioning_revisions_summary_validate($form, &$form_state) {
   // Strip out all unchecked boxes
-  foreach($form_state['values']['tickbox'] as $key => $value) {
-    if ($value == 0) {
-      unset($form_state['values']['tickbox'][$key]);
-  	}
-  }
+  $form_state['values']['tickbox'] = array_filter($form_state['values']['tickbox']);
   $count = count($form_state['values']['tickbox']);
   if ($count != 2) {
     form_set_error('tickbox', t('Please select 2 revisions rather than !count', array('!count' => $count)));
@@ -149,13 +149,14 @@ function revisioning_revisions_summary_submit($form, &$form_state) {
  * o 'username'
  * Uses the following style-classes (see revisioning.css)
  * o 'table-revisions'
- * o 'revision-current'
+ * o 'revision-current' and 'published'
  * o 'revision-pending'
  * @param $form
  * @return unknown_type
  */
 function theme_revisioning_revisions_summary($form) {
 
+  // Need node info, fortunately node_load() employs a cache so is efficient
   $node = node_load($form['nid']['#value']);
 
   $css_path = drupal_get_path('module', 'revisioning') .'/revisioning.css';
@@ -184,7 +185,7 @@ function theme_revisioning_revisions_summary($form) {
     $row[] = drupal_render($form['info'][$vid]);
     // Compare checkbox
     if ($show_diff) {
-      $row[] = array('data' => drupal_render($form['tickbox'][$vid]), 'style' => 'text-align:center');
+      $row[] = array('data' => drupal_render($form['tickbox'][$vid]));
     }
     // Term
     if ($show_taxonomy_terms) {
@@ -199,8 +200,10 @@ function theme_revisioning_revisions_summary($form) {
     else {
       $row[] = array('data' => $is_pending ? t('pending moderation') : t('old')); 
     }
-
     $row_style = $is_current ? 'revision-current' : ($is_pending ? 'revision-pending' : NULL);
+    if ($is_current && $node->status) {
+      $row_style .= ' published';
+    }
     $rows[] = array('data' => $row, 'class' => $row_style);
   }
   $attributes = array('class' => 'table-revisions');
