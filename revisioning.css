@@ -6,8 +6,9 @@
 .submenu.revisions {
 }
 
-.table-revisions .form-item {
+.table-revisions .form-item, .table-revisions th.form-submit {
   text-align: center;
+  padding: 0;
 }
 .revision-pending td {
   background-color: #fcc; /* pale pink */

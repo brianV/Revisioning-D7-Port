@@ -97,7 +97,8 @@ function revisioning_revisions_summary($form_state, $nid) {
     $form['tickbox'] = array(
       '#type' => 'checkboxes', 
       '#options' => $revision_ids,
-      '#default_value' => array($id1, $id2)
+      '#default_value' => array($id1, $id2),
+      '#required' => TRUE,
     );
     // Submit button
     $form['submit'] = array('#value' => t('Compare'), '#type' => 'submit');
@@ -172,7 +173,7 @@ function theme_revisioning_revisions_summary($form) {
   // Set up the table header
   $header = array(t('Revision'));
   if ($show_diff) {
-    $header[] = drupal_render($form['submit']);
+    $header[] = array('data' => drupal_render($form['submit']), 'class' => 'form-submit');
   }
   if ($show_taxonomy_terms) {
     $header[] = t('Term');
