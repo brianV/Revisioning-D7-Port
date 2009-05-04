@@ -10,14 +10,15 @@
   text-align: center;
   padding: 0;
 }
+
 .revision-pending td {
   background-color: #fcc; /* pale pink */
 }
 
-.revision-current.published td {
-  background-color: #ffc; /* pale yellow, same as node/node.css */
-}
-
 .revision-current td {
   background-color: #faa; /* red-pink when current revision is unpublished */
+}
+
+.revision-current.published td {
+  background-color: #ffc; /* pale yellow, same as node/node.css */
 }
