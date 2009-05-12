@@ -43,14 +43,24 @@ function revisioning_revisioning($op) {
   if (!module_exists("trigger")) {
     return;
   }
-  $action_ids = array_keys(_trigger_get_hook_aids('revisioning', $op));
-  if (empty($action_ids)) {
+  $aids = _trigger_get_hook_aids('revisioning', $op);
+  if (empty($aids)) {
     return;
   }
-  watchdog('revisioning', '%op trigger is actioning "@aids"', array('%op' => $op, '@aids' => implode(', ', $action_ids)));
+  watchdog('revisioning', '%op trigger is actioning "@aids"', array('%op' => $op, '@aids' => implode(', ', array_keys($aids))));
   global $user;
   $context = array('hook' => 'revisioning', 'op' => $op, 'user' => $user);
-  actions_do($action_ids, $user, $context);
+  foreach ($aids as $aid => $action_info) {
+    if ($action_info['type'] == 'node') {
+      if ((arg(0) == 'node') && is_numeric(arg(1))) {
+        $object = node_load(array('nid' => arg(1)));
+      }
+    }
+    else {
+      $object = $user;
+    }
+    actions_do($aid, $object, $context);
+  }
 }
 
 /**
@@ -61,7 +71,7 @@ function revisioning_action_info() {
   return array(
     'revisioning_publish_latest_revision_action' => array(
       'type' => 'node',
-      'description' => t('Publish the most recent pending revision.'),
+      'description' => t('Publish the most recent pending revision'),
       'configurable' => FALSE,
       'hooks' => array(
         'nodeapi' => array('presave'),

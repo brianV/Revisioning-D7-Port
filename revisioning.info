@@ -3,4 +3,4 @@ name = Revisioning
 description = Allows content to be created and edited while remaining invisible to the public until reviewed and accepted by a moderator
 dependencies[] = module_grants
 core = "6.x"
-version = "6.x-2.3-dev"
+version = "6.x-2.3"

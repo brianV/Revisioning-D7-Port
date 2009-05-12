@@ -42,9 +42,8 @@ function revisioning_theme() {
  * @ingroup themeable
  */
 function _theme_revisions_summary(&$node) {
-  drupal_set_title(t('Revisions for %title', array('%title'=> $node->title)));
-  return drupal_get_form('revisioning_revisions_summary', $node->nid);	
-	
+  drupal_set_title(t('Revisions for %title', array('%title' => $node->title)));
+  return drupal_get_form('revisioning_revisions_summary', $node->nid);
 }
 
 /**
@@ -169,7 +168,7 @@ function theme_revisioning_revisions_summary($form) {
 
   $show_diff = count($revision_ids) >= 2 && module_exists('diff');
   $show_taxonomy_terms = module_exists('taxonomy');
-     
+
   // Set up the table header
   $header = array(t('Revision'));
   if ($show_diff) {

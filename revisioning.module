@@ -119,7 +119,7 @@ function revisioning_menu_alter(&$items) {
   // Override existing callback so that we can insert trigger pulled upon reverting
   $items['node/%node/revisions/%/revert']['page callback'] = 'drupal_get_form';
   $items['node/%node/revisions/%/revert']['page arguments'] = array('revisioning_revert_confirm', 1);
-  
+
   // If Diff module is enabled, make sure it uses correct access callback
   if (module_exists('diff')) {
     $items['node/%node/revisions/view/%/%']['access callback'] = 'module_grants_node_revision_access';
@@ -258,6 +258,11 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
  * Menu callback; edit revision.
  */
 function revisioning_edit($node) {
+  // Use the admin theme if the user specified this for node edit pages
+  if (variable_get('node_admin_theme', FALSE)) {
+    global $theme, $custom_theme;
+    $custom_theme = variable_get('admin_theme', $theme);
+  }
   drupal_set_title(check_plain($node->title));
   return drupal_get_form($node->type .'_node_form', $node);
 }
@@ -467,6 +472,7 @@ function _get_all_revisions_for_node($nid, $include_taxonomy_terms = FALSE) {
   if ($include_taxonomy_terms) {
     $sql_select .= ', td.name AS term';
     $sql_from .= ' LEFT JOIN {term_node} tn ON r.vid=tn.vid LEFT JOIN {term_data} td ON tn.tid=td.tid';
+    $sql_where .= ', term ASC';
   }
   $sql = $sql_select . $sql_from . $sql_where;
   $result = db_query($sql, $nid);

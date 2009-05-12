@@ -47,3 +47,5 @@ o Removed revisioning operations from authenticated user's home page (occurred
 o Don't display horizontal rule when submenu is empty.
 o Styled current and pending revisions in revisions summary table.
 o Side-by-side comparison function when Diff module is enabled.
+o Fix triggering of "change workflow action" in Workflow module [thanks: easp]
+o Respect admin theme for content editing when ticked on admin settings page [thanks james.cartledge] 
