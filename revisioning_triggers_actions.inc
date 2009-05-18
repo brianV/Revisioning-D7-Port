@@ -20,7 +20,7 @@ function revisioning_hook_info() {
           'runs when' => t('When publishing a pending revision'),
         ),
         'revert' => array(
-          'runs when' => t('When reverting to an old revision'),
+          'runs when' => t('When reverting to an archived revision'),
         ),
         'unpublish' => array(
           'runs when' => t('When unpublishing the current revision'),

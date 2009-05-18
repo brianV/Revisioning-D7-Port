@@ -113,7 +113,7 @@ function revisioning_menu_alter(&$items) {
 
   // Point /%node/revisions/%/view page to same callback as /%node/view for a
   // consistent view of current and other revisions
-  $items['node/%node/revisions/%/view']['page callback'] = 'node_page_view'; // as used by /%node/view
+//$items['node/%node/revisions/%/view']['page callback'] = 'node_page_view'; // as used by /%node/view
 //$items['node/%node/revisions/%/view']['page arguments'] = array(1);
 
   // Override existing callback so that we can insert trigger pulled upon reverting
@@ -190,7 +190,9 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
   switch ($op) {
     case 'alter': // called just after $node object is fully built
       if (module_grants_node_revision_access('view revisions', $node)) {
-        drupal_set_message(_get_node_details($node));
+        if ($node->nid == $args[1]) { // don't show msg on page with many nodes
+          drupal_set_message(_get_node_details($node));
+        }
         global $theme_engine;
         if (!isset($theme_engine)) {
           _theme_content_menu($node);
@@ -520,7 +522,7 @@ function _get_node_details($node) {
   else {
     $message = $is_pending
       ? t('Displaying pending revision of %title, last modified by !author on @date', $placeholder_data)
-      : t('Displaying old revision of %title, last modified by !author on @date', $placeholder_data);
+      : t('Displaying archived revision of %title, last modified by !author on @date', $placeholder_data);
   }
   return $message;
 }
@@ -622,3 +624,39 @@ function generate_revision_links_according_to_permissions($node) {
 function _get_current_revision($nid) {
   return db_fetch_object(db_query('SELECT r.vid, r.timestamp FROM {node} n INNER JOIN {node_revisions} r ON n.vid=r.vid WHERE n.nid=%d', $nid));
 }
+
+/**
+ * Implementation of hook_token_values().
+ */
+function revisioning_token_values($type, $object = NULL, $options = array()) {
+  $values = array();
+  switch ($type) {
+    case 'node':
+      $values['vid'] = $object->vid;
+      break;
+    
+    case 'op':
+      switch($object) {
+        case 'publish':
+        case 'revert':
+        case 'unpublish':
+          $node = node_load(array('nid' => arg(1)));
+          $values = node_token_values('node', $node, $options);
+          $values['vid'] = $node->vid;
+      }
+      break;
+  }
+  return $values;
+}
+
+/**
+ * Implementation of hook_token_list().
+ */
+function revisioning_token_list($type = 'all') {
+  if ($type == 'node' || $type == 'all') {
+    $tokens = array();
+    $tokens['node']['vid'] = t('Node revision ID');
+    return $tokens;
+  }
+}
+
