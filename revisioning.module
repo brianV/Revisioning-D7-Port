@@ -3,8 +3,9 @@
 
 /**
  * @file
- * Module to allow editing of current or old revisions while current revision
- * remains public until reviewed and accepted by a moderator.
+ * Allows the creation and modification of pre-published, current and archived
+ * content while the current revision remains unchanged and publicly visible
+ * until the changes have been reviewed by a moderator.
  */
 require_once drupal_get_path('module', 'revisioning') .'/revisioning_theme.inc';
 require_once drupal_get_path('module', 'revisioning') .'/revisioning_triggers_actions.inc';
@@ -373,13 +374,13 @@ function revisioning_publish_latest_revision($node) {
 }
 
 /**
- * Return a confirmation page prior to reverting to an older revision.
+ * Return a confirmation page prior to reverting to an archived revision.
  *
  * Forward to the existing revert function in node.pages.inc
  */
 function revisioning_revert_confirm($form_state, $node) {
   if (_number_of_pending_revisions($node->nid) > 0) {
-    drupal_set_message(t('There is a pending revision. Are you sure you want to revert to an older revision?'), 'warning');
+    drupal_set_message(t('There is a pending revision. Are you sure you want to revert to an archived revision?'), 'warning');
   }
   return node_revision_revert_confirm($form_state, $node);
 }
@@ -394,7 +395,8 @@ function revisioning_revert_confirm($form_state, $node) {
  * It would be nice if publish and revert were symmetrical operations and that
  * node_revision_revert_cofirm_submit didn't save a copy of the revision (under
  * a new vid), as this has the side-effect of making all "pending" revisions
- * "old" because the definition of "pending" is "node_vid > current_vid".
+ * "old". This is because the definition of "pending" is:
+ * "node_vid > current_vid".
  * It would be better if "pending" relied on a separate flag rather than a field
  * such as vid (or a timestamp) that changes everytime a piece of code executes
  * a node_save.
@@ -456,8 +458,8 @@ function _get_pending_revisions($nid) {
 }
 
 /**
- * Retrieve a list of all revisions (old, current, pending) belonging to the
- * supplied node.
+ * Retrieve a list of all revisions (archive, current, pending) belonging to
+ * the supplied node.
  *
  * @param $nid
  *  The node id to retrieve.
@@ -629,14 +631,15 @@ function _get_current_revision($nid) {
  * Implementation of hook_token_values().
  */
 function revisioning_token_values($type, $object = NULL, $options = array()) {
+  drupal_set_message("revisioning_token_values($type, ". print_r($object, TRUE) .')');
   $values = array();
   switch ($type) {
     case 'node':
       $values['vid'] = $object->vid;
       break;
-    
+
     case 'op':
-      switch($object) {
+      switch ($object) {
         case 'publish':
         case 'revert':
         case 'unpublish':

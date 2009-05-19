@@ -48,4 +48,9 @@ o Don't display horizontal rule when submenu is empty.
 o Styled current and pending revisions in revisions summary table.
 o Side-by-side comparison function when Diff module is enabled.
 o Fix triggering of "change workflow action" in Workflow module [thanks: easp]
-o Respect admin theme for content editing when ticked on admin settings page [thanks james.cartledge] 
+o Respect admin theme for content editing when ticked on admin settings page [thanks james.cartledge]
+
+6.x-2.4
+=======
+o Allow both 'node' and 'user' context token placeholders to be used with
+  publish, revert and unpublish triggers (see tutorial drupal.org/node/408968)
