@@ -54,3 +54,9 @@ o Respect admin theme for content editing when ticked on admin settings page [th
 =======
 o Allow both 'node' and 'user' context token placeholders to be used with
   publish, revert and unpublish triggers (see tutorial drupal.org/node/408968)
+  
+6.x-2.5
+=======
+o [#465890] Option to create new revisions at every save, as opposed to only
+  when the working copy is NOT pending (default) [thanks: David Stosik]
+

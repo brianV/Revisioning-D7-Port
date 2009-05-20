@@ -10,6 +10,9 @@
 require_once drupal_get_path('module', 'revisioning') .'/revisioning_theme.inc';
 require_once drupal_get_path('module', 'revisioning') .'/revisioning_triggers_actions.inc';
 
+define('NEW_REVISION_WHEN_NOT_PENDING', 0);
+define('NEW_REVISION_EVERY_SAVE', 1);
+
 /**
  * Implementation of hook_help().
  */
@@ -173,10 +176,20 @@ function revisioning_form_alter(&$form, &$form_state, $form_id) {
 /**
  * Implementation of hook_node_type_form_alter().
  *
- * On content type edit form, add the "New revisions in moderation" tick-box.
+ * On content type edit form, add the "New revisions in moderation" tick-box
+ * and a couple of radio-boxes to select the new revision policy.
  */
 function revisioning_form_node_type_form_alter(&$form, &$form_state) {
   $form['workflow']['node_options']['#options']['revision_moderation'] = t('New revisions in moderation');
+  $form['workflow']['new_revisions'] = array(
+    '#title' => t('Create new revision'),
+    '#type' => 'radios',
+    '#options' => array(
+      NEW_REVISION_WHEN_NOT_PENDING => t('Only when saving content that is <em>not</em> pending'),
+      NEW_REVISION_EVERY_SAVE       => t('Every time content is saved')),
+    '#default_value' => variable_get('new_revisions_'. $form['#node_type']->type, NEW_REVISION_WHEN_NOT_PENDING),
+    '#description' => t('Save disk space and avoid cluttering your revisions list. With the first option ticked, modifications are saved to the same copy (i.e. no additional revisions are created) until the content is published. This selection applies only when "Create new revision" and "New revisions in moderation" are both ticked.')
+    );
 }
 
 /**
@@ -234,11 +247,12 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
             // Save the vid for subsequent restore during 'update' op
             $node->original_vid = $current_revision->vid;
             $node->original_revision = $node->revision;
-            $is_pending = ($node->vid > $current_revision->vid) ||
-                          ($node->vid == $current_revision->vid && !$node->status);
-            if ($node->revision && $is_pending) {
-              // Not creating new revision as this revision is still pending
-              $node->revision = FALSE;
+            if ($node->revision && variable_get('new_revisions_'. $node->type, NEW_REVISION_WHEN_NOT_PENDING) == NEW_REVISION_WHEN_NOT_PENDING) {
+              // See if node is pending/current-unpublished
+              if ($node->vid > $current_revision->vid || ($node->vid == $current_revision->vid && !$node->status)) {
+                // Not creating new revision as this revision is still pending
+                $node->revision = FALSE;
+              }
             }
             break;
 
@@ -631,7 +645,6 @@ function _get_current_revision($nid) {
  * Implementation of hook_token_values().
  */
 function revisioning_token_values($type, $object = NULL, $options = array()) {
-  drupal_set_message("revisioning_token_values($type, ". print_r($object, TRUE) .')');
   $values = array();
   switch ($type) {
     case 'node':
