@@ -41,7 +41,7 @@ o Tidied up theming. Removed obsolete file.
 =======
 o Removed revisioning operations from authenticated user's home page (occurred
   for themes employing engines).
-  
+
 6.x-2.3
 =======
 o Don't display horizontal rule when submenu is empty.
@@ -54,9 +54,13 @@ o Respect admin theme for content editing when ticked on admin settings page [th
 =======
 o Allow both 'node' and 'user' context token placeholders to be used with
   publish, revert and unpublish triggers (see tutorial drupal.org/node/408968)
-  
+
 6.x-2.5
 =======
 o [#465890] Option to create new revisions at every save, as opposed to only
   when the working copy is NOT pending (default) [thanks: David Stosik]
 
+6.x-2.6
+=======
+o Update of German translations [thanks: rastatt]
+o Pending revisions block

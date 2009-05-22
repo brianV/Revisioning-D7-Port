@@ -16,4 +16,5 @@ function revisioning_install() {
  * Implementation of hook_uninstall().
  */
 function revisioning_uninstall() {
+  variable_del('revisioning_block_num_pending');
 }

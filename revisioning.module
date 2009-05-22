@@ -188,7 +188,7 @@ function revisioning_form_node_type_form_alter(&$form, &$form_state) {
       NEW_REVISION_WHEN_NOT_PENDING => t('Only when saving content that is <em>not</em> pending'),
       NEW_REVISION_EVERY_SAVE       => t('Every time content is saved')),
     '#default_value' => variable_get('new_revisions_'. $form['#node_type']->type, NEW_REVISION_WHEN_NOT_PENDING),
-    '#description' => t('Save disk space and avoid cluttering your revisions list. With the first option ticked, modifications are saved to the same copy (i.e. no additional revisions are created) until the content is published. This selection applies only when "Create new revision" and "New revisions in moderation" are both ticked.')
+    '#description' => t('Save on disk space and avoid cluttering your revisions list. With the first option ticked, modifications are saved to the same copy (i.e. no additional revisions are created) until the content is published. This selection applies only when "Create new revision" and "New revisions in moderation" are both ticked.')
     );
 }
 
@@ -676,3 +676,59 @@ function revisioning_token_list($type = 'all') {
   }
 }
 
+/**
+ * Implementation of hook_block().
+ *
+ * A block that may be placed on all or selected pages, alterting the user
+ * (moderator) when new content has been submitted for review. Shows as a
+ * series of up to 5 links the titles of pending revisions.
+ * Clicking a link takes the moderator straight to the revision in question.
+ */
+function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
+  // Don't show block or allow its configuration if user has no permission
+  if (!user_access("view revisions")) {
+    return;
+  }
+
+  switch ($op) {
+    case 'list':
+      // Set up the defaults for the Site configuration>>Blocks page
+      // Return a list of 1 block(s) and the default values
+      $blocks[0]['info'] = t('Pending revisions');
+      $blocks[0]['cache'] = BLOCK_NO_CACHE;
+      $blocks[0]['weight'] = -10; // top of whatever region is chosen
+      $blocks[0]['custom'] = FALSE; // block is implemented by this module;
+      return $blocks;
+
+    case 'configure':
+      $form['revisioning_block_num_pending'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Maxium number of pending revisions displayed'),
+        '#default_value' => variable_get('revisioning_block_num_pending', 5)
+      );
+      return $form;
+
+    case 'save':
+      variable_set('revisioning_block_num_pending', (int)$edit['revisioning_block_num_pending']);
+      break;
+
+    case 'view':
+      $max_num_shown = variable_get('revisioning_block_num_pending', 5);
+      if ($max_num_shown > 0) {
+        $nodes = get_nodes('update', TRUE);
+        $links = array();
+        $i = 0;
+        foreach ($nodes as $node) {
+          if ($i++ >= $max_num_shown) {
+            break;
+          }
+          $links[] = l($node->title, "node/$node->nid/revisions/$node->vid/view")
+            .' ('. theme('username', user_load(array('uid' => $node->uid))) .')';
+        }
+        $block = array();
+        $block['subject'] = l(t('!count revisions pending', array('!count' => count($nodes))), 'content/pending');
+        $block['content'] = theme('item_list', $links);
+        return $block;
+      }
+  }
+}
