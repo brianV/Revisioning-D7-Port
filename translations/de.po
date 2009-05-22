@@ -11,8 +11,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Drupal Revisioning V6.x-2.4\n"
-"POT-Creation-Date: 2009-05-19 18:56+0200\n"
-"PO-Revision-Date: 2009-05-19 19:02+0100\n"
+"POT-Creation-Date: 2009-05-21 18:40+0200\n"
+"PO-Revision-Date: 2009-05-21 18:45+0100\n"
 "Last-Translator: Frank Tartler <frank.tartler@googlemail.com>\n"
 "Language-Team: Frank Tartler <frank.tartler@googlemail.com>\n"
 "MIME-Version: 1.0\n"
@@ -25,7 +25,7 @@ msgstr ""
 
 #: revisioning_theme.inc:45
 msgid "Revisions for %title"
-msgstr "Revisionen von %title"
+msgstr "Versionen von %title"
 
 #: revisioning_theme.inc:80
 msgid "Saved !date by !username"
@@ -65,7 +65,7 @@ msgstr "aktuelle Version (nicht veröffentlicht)"
 
 #: revisioning_theme.inc:201
 msgid "pending moderation"
-msgstr "anstehende Moderation"
+msgstr "ausstehende Moderation"
 
 #: revisioning_theme.inc:201
 msgid "archived"
@@ -94,7 +94,7 @@ msgid "Publish the most recent pending revision"
 msgstr "Die neueste ausstehende Version veröffentlichen"
 
 #: revisioning_triggers_actions.inc:92
-#: revisioning.module:323;348
+#: revisioning.module:337;362
 msgid "view"
 msgstr "Ansicht"
 
@@ -110,163 +110,179 @@ msgstr ""
 msgid "Executing publish_latest_revision action for @type %title"
 msgstr "Aktion publish_latest_revision für @type %title wird ausgeführt"
 
-#: revisioning.module:19
+#: revisioning.module:22
 msgid "To edit, publish or delete one of the revisions below, click on its saved date."
 msgstr "Um eine der unten stehenden Versionen zu bearbeiten, veröffentlichen oder löschen muss auf das Speicherdatum geklickt werden."
 
-#: revisioning.module:159;179
+#: revisioning.module:162;183
 msgid "New revisions in moderation"
 msgstr "Neue Version in Moderation"
 
-#: revisioning.module:206
+#: revisioning.module:185
+msgid "Create new revision"
+msgstr "Neue Version erstellen"
+
+#: revisioning.module:188
+msgid "Only when saving content that is <em>not</em> pending"
+msgstr "Nur beim Speichern von Inhalt, der <em>nicht</em> ausstehend ist"
+
+#: revisioning.module:189
+msgid "Every time content is saved"
+msgstr "Jedes Mal wenn Inhalt gespeichert wird"
+
+#: revisioning.module:191
+msgid "Save on disk space and avoid cluttering your revisions list. With the first option ticked, modifications are saved to the same copy (i.e. no additional revisions are created) until the content is published. This selection applies only when \"Create new revision\" and \"New revisions in moderation\" are both ticked."
+msgstr "Plattenplatz speichern und Unordnung in den Versionslisten vermeiden. Wenn die erste Option ausgewählt ist, werden änderungen in die selbe Kopie gespeichert (d.h. es werden keine zusätzliche Versionen erstellt) bis der Inhalt veröffentlicht wird. Diese Auswahl wird nur angewendet, wenn „Neue Version erstellen“ und „Neue Version in Moderation“ gemeinsam ausgewählt werden."
+
+#: revisioning.module:219
 msgid "Initial revision created and published."
 msgstr "Erste Version erstellt und veröffentlicht."
 
-#: revisioning.module:209
+#: revisioning.module:222
 msgid "Initial revision created, pending publication."
 msgstr "Erste Version erstellt, Veröffentlichung steht an"
 
-#: revisioning.module:223
+#: revisioning.module:236
 msgid "Please note there is one revision more recent than the one you are about to edit."
 msgstr "Es gibt eine Version, die neuer ist als die zum Bearbeiten ausgewählte."
 
-#: revisioning.module:226
+#: revisioning.module:239
 msgid "Please note there are !count revisions more recent than the one you are about to edit."
 msgstr "Es gibt !count Versionen, die neuer sind als die zum Bearbeiten ausgewählte."
 
-#: revisioning.module:255
+#: revisioning.module:269
 msgid "Your changes are now current as moderation is switched off for this content."
 msgstr "Die Änderungen sind jetzt aktuell, da Moderation für diesen Inhalt ausgeschaltet ist."
 
-#: revisioning.module:281
+#: revisioning.module:295
 msgid "Are you sure you want to publish this revision of %title?"
 msgstr "Soll diese Version von %title wirklich veröffentlicht werden?"
 
-#: revisioning.module:283
+#: revisioning.module:297
 msgid "Publishing this revision will make it visible to the public."
 msgstr "Das Veröffentlichen dieser Version macht sie öffentlich sichtbar."
 
-#: revisioning.module:284
+#: revisioning.module:298
 msgid "Publish"
 msgstr "Veröffentlichen"
 
-#: revisioning.module:284;310
+#: revisioning.module:298;324
 msgid "Cancel"
 msgstr "Abbrechen"
 
-#: revisioning.module:307
+#: revisioning.module:321
 msgid "Are you sure you want to unpublish %title?"
 msgstr "Soll die Veröffentlichung von %title wirklich zurückgenommen werden?"
 
-#: revisioning.module:309
+#: revisioning.module:323
 msgid "Unpublishing will remove this content from public view."
 msgstr "Nach dem Zurücknehmen der Veröffentlichung ist dieser Inhalt nicht mehr öffentlich sichtbar."
 
-#: revisioning.module:310
+#: revisioning.module:324
 msgid "Unpublish"
 msgstr "Veröffentlichung zurücknehmen"
 
-#: revisioning.module:322
+#: revisioning.module:336
 msgid "%title has been unpublished."
 msgstr "Die Veröffentlichung von %title wurde zurückgenommen."
 
-#: revisioning.module:347
+#: revisioning.module:361
 msgid "Revision has been published."
 msgstr "Version wurde veröffentlicht."
 
-#: revisioning.module:372
+#: revisioning.module:386
 msgid "\"!title\" has no pending revision to be published."
 msgstr "„!title“ hat keine ausstehende Version zum Veröffentlichen."
 
-#: revisioning.module:383
+#: revisioning.module:397
 msgid "There is a pending revision. Are you sure you want to revert to an archived revision?"
 msgstr "Es gibt eine ausstehende Version. Soll wirklich auf eine archivierte Version zurückgegangen werden?"
 
-#: revisioning.module:511
+#: revisioning.module:525
 msgid "current, published"
 msgstr "aktuell, veröffentlicht"
 
-#: revisioning.module:511
+#: revisioning.module:525
 msgid "current, unpublished"
 msgstr "aktuell, nicht veröffentlicht"
 
-#: revisioning.module:522
+#: revisioning.module:536
 msgid "Displaying %current revision of %title, last modified by !author on @date"
 msgstr "Anzeige der Version %current von %title, zuletzt geändert von !author am @date"
 
-#: revisioning.module:526
+#: revisioning.module:540
 msgid "Displaying pending revision of %title, last modified by !author on @date"
 msgstr "Anzeige der anstehenden Version von %title, zuletzt geändert von !author am @date"
 
-#: revisioning.module:527
+#: revisioning.module:541
 msgid "Displaying archived revision of %title, last modified by !author on @date"
 msgstr "Anzeige der archivierten Version von %title, zuletzt geändert von !author am @date"
 
-#: revisioning.module:544
+#: revisioning.module:558
 msgid "Unpublish current revision"
 msgstr "Veröffentlichung der aktuellen Version zurücknehmen"
 
-#: revisioning.module:547
+#: revisioning.module:561
 msgid "Delete all revisions"
 msgstr "Alle Versionen löschen"
 
-#: revisioning.module:585
+#: revisioning.module:599
 msgid "Compare to current"
 msgstr "Mit aktueller Version vergleichen"
 
-#: revisioning.module:590
+#: revisioning.module:604
 msgid "Edit this revision"
 msgstr "Diese Version bearbeiten"
 
-#: revisioning.module:595
+#: revisioning.module:609
 msgid "Publish this revision"
 msgstr "Diese Version veröffentlichen"
 
-#: revisioning.module:598
+#: revisioning.module:612
 msgid "Revert to this revision"
 msgstr "Zu dieser Version zurückgehen"
 
-#: revisioning.module:601
+#: revisioning.module:615
 msgid "Unpublish this revision"
 msgstr "Die Veröffentlichung dieser Version zurücknehmen"
 
-#: revisioning.module:605
+#: revisioning.module:619
 msgid "Delete this revision"
 msgstr "Diese Version löschen"
 
-#: revisioning.module:610
+#: revisioning.module:624
 msgid "Show all revisions"
 msgstr "Alle Versionen anzeigen"
 
-#: revisioning.module:661
+#: revisioning.module:674
 msgid "Node revision ID"
 msgstr "Beitragsversions-ID"
 
-#: revisioning.module:323;348
+#: revisioning.module:337;362
 msgid "content"
 msgstr "Inhalt"
 
-#: revisioning.module:323
+#: revisioning.module:337
 msgid "Unpublished @type %title"
 msgstr "Veröffentlichung von @type %title zurückgenommen"
 
-#: revisioning.module:348
+#: revisioning.module:362
 msgid "Published rev #%revision of @type %title"
 msgstr "Version #%revision von @type %title veröffentlicht"
 
-#: revisioning.module:30
+#: revisioning.module:33
 msgid "edit revisions"
 msgstr "Versionen bearbeiten"
 
-#: revisioning.module:30
+#: revisioning.module:33
 msgid "publish revisions"
 msgstr "Versionen veröffentlichen"
 
-#: revisioning.module:30
+#: revisioning.module:33
 msgid "unpublish current revision"
 msgstr "Veröffentlichung der aktuellen Version zurücknehmen"
 
-#: revisioning.module:45
+#: revisioning.module:48
 msgid "Pending"
 msgstr "Anstehend"
 
@@ -287,4 +303,3 @@ msgstr "Ermöglicht das Erstellen und Ändern von noch nicht veröffentlichtem, 
 #~ "Ermöglicht das Erstellen und Bearbeiten von Inhalt, ohne dass er "
 #~ "öffentlich sichtbar wird, bevor er von einem Moderatur durchgesehen und "
 #~ "akzeptiert wird."
-
