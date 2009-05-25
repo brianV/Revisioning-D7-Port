@@ -204,7 +204,7 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
   switch ($op) {
     case 'alter': // called just after $node object is fully built
       if (module_grants_node_revision_access('view revisions', $node)) {
-        if ($node->nid == $args[1]) { // don't show msg on page with many nodes
+        if (!$teaser && $node->nid == $args[1]) { // don't show msg on page with many nodes
           drupal_set_message(_get_node_details($node));
         }
         global $theme_engine;
@@ -243,13 +243,11 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
     if ($node->revision_moderation) {
         switch ($op) {
           case 'presave': // called from start of node_save()
-            $current_revision = _get_current_revision($node->nid);
             // Save the vid for subsequent restore during 'update' op
-            $node->original_vid = $current_revision->vid;
+            $node->original_vid = _get_current_revision_id($node->nid);
             $node->original_revision = $node->revision;
             if ($node->revision && variable_get('new_revisions_'. $node->type, NEW_REVISION_WHEN_NOT_PENDING) == NEW_REVISION_WHEN_NOT_PENDING) {
-              // See if node is pending/current-unpublished
-              if ($node->vid > $current_revision->vid || ($node->vid == $current_revision->vid && !$node->status)) {
+              if (_is_pending($node)) {
                 // Not creating new revision as this revision is still pending
                 $node->revision = FALSE;
               }
@@ -374,8 +372,7 @@ function revisioning_publish_latest_revision($node) {
   // Get latest pending revision or take the current provided it's UNpublished
   $latest_pending = array_shift(_get_pending_revisions($node->nid));
   if (!$latest_pending) {
-    $current_revision = _get_current_revision($node->nid);
-    if ($node->vid == $current_revision->vid && !$node->status) {
+    if (!$node->status && $node->vid == _get_current_revision_id($node->nid)) {
       $latest_pending = $node;
     }
   }
@@ -528,15 +525,13 @@ function _get_node_details($node) {
           '%title' => check_plain($node->title),
           '!author' => theme('username', $revision_author),
           '@date' => format_date($node->revision_timestamp, 'small'));
-  $current_revision = _get_current_revision($node->nid);
-  $is_current = ($node->vid == $current_revision->vid);
-  $is_pending = ($node->vid > $current_revision->vid);
+  $current_revision_id = _get_current_revision_id($node->nid);
   // $message coded with some duplication to improve translatability
-  if ($is_current) {
+  if ($node->vid == $current_revision_id) {
     $message = t('Displaying %current revision of %title, last modified by !author on @date', $placeholder_data);
   }
   else {
-    $message = $is_pending
+    $message = ($node->vid > $current_revision_id)
       ? t('Displaying pending revision of %title, last modified by !author on @date', $placeholder_data)
       : t('Displaying archived revision of %title, last modified by !author on @date', $placeholder_data);
   }
@@ -580,9 +575,9 @@ function generate_revision_links_according_to_permissions($node) {
   $access_revert    = $access_view && user_access('revert revisions');
   $access_unpublish = $access_view && user_access('unpublish current revision');
 
-  $current_revision = _get_current_revision($node->nid);
-  $is_current = ($node->vid == $current_revision->vid);
-  $is_pending = ($node->vid > $current_revision->vid);
+  $current_revision_id = _get_current_revision_id($node->nid);
+  $is_current = ($node->vid == $current_revision_id);
+  $is_pending = ($node->vid > $current_revision_id);
 
   $links = array(); // Links to compare/revert/publish/delete revisions
   if ($access_view) {
@@ -591,10 +586,10 @@ function generate_revision_links_according_to_permissions($node) {
       $comparison_url = "node/$node->nid/revisions/view/";
       // Make sure that latest of the two revisions is on the right
       if ($is_pending) {
-        $comparison_url .= "$current_revision->vid/$node->vid";
+        $comparison_url .= "$current_revision_id/$node->vid";
       }
       else {
-        $comparison_url .= "$node->vid/$current_revision->vid";
+        $comparison_url .= "$node->vid/$current_revision_id";
       }
       $links[] = l(t('Compare to current'), $comparison_url);
     }
@@ -627,18 +622,31 @@ function generate_revision_links_according_to_permissions($node) {
 }
 
 /**
- *  Get the current revision that the supplied node is pointing to.
+ * Get the id of the current revision that the supplied node is pointing to.
+ * Used in cases where the node object wasn't fully loaded or was loaded
+ * with a different revision.
  *
- *  Used in cases where the node object wasn't fully loaded or was loaded
- *  with a different revision.
- *
- *  @param $nid
- *   The id of the node whose revision is to be returned.
- *  @return
- *   An object containing revision id (vid) and revision timestamp only
+ * @param $nid
+ *  The id of the node whose current revision id is to be returned.
+ * @return
+ *  A single number being the current revision id (vid).
  */
-function _get_current_revision($nid) {
-  return db_fetch_object(db_query('SELECT r.vid, r.timestamp FROM {node} n INNER JOIN {node_revisions} r ON n.vid=r.vid WHERE n.nid=%d', $nid));
+function _get_current_revision_id($nid) {
+  return db_result(db_query('SELECT vid FROM {node} WHERE nid=%d', $nid));
+}
+
+/**
+ * Return whether the node has a pending revision, that is a revision newer
+ * than the current OR when there's only one revision, whether that revision is
+ * unpublished.
+ *
+ * @param $node
+ * @return TRUE, if the node has a pending revision.
+ */
+function _is_pending($node) {
+  return 
+   ($node->vid > _get_current_revision_id($node->nid)) ||
+   (!$node->status && db_result(db_query("SELECT COUNT(vid) node_revisions WHERE nid=%d)", $nid)) == 1);
 }
 
 /**
@@ -685,15 +693,10 @@ function revisioning_token_list($type = 'all') {
  * Clicking a link takes the moderator straight to the revision in question.
  */
 function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
-  // Don't show block or allow its configuration if user has no permission
-  if (!user_access("view revisions")) {
-    return;
-  }
-
   switch ($op) {
     case 'list':
       // Set up the defaults for the Site configuration>>Blocks page
-      // Return a list of 1 block(s) and the default values
+      // Return a list of (1) block(s) and the default values
       $blocks[0]['info'] = t('Pending revisions');
       $blocks[0]['cache'] = BLOCK_NO_CACHE;
       $blocks[0]['weight'] = -10; // top of whatever region is chosen
@@ -703,7 +706,7 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
     case 'configure':
       $form['revisioning_block_num_pending'] = array(
         '#type' => 'textfield',
-        '#title' => t('Maxium number of pending revisions displayed'),
+        '#title' => t('Maximum number of pending revisions displayed'),
         '#default_value' => variable_get('revisioning_block_num_pending', 5)
       );
       return $form;
@@ -713,22 +716,26 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
       break;
 
     case 'view':
-      $max_num_shown = variable_get('revisioning_block_num_pending', 5);
-      if ($max_num_shown > 0) {
-        $nodes = get_nodes('update', TRUE);
-        $links = array();
-        $i = 0;
-        foreach ($nodes as $node) {
-          if ($i++ >= $max_num_shown) {
-            break;
+      if (user_access("view revisions")) {
+        $max_num_shown = variable_get('revisioning_block_num_pending', 5);
+        if ($max_num_shown > 0) {
+          $nodes = get_nodes('update', TRUE, 'vid ASC');
+          if (!empty($nodes)) {
+            $links = array();
+            $i = 0;
+            foreach ($nodes as $node) {
+              if ($i++ >= $max_num_shown) {
+                break;
+              }
+              $links[] = l($node->title, "node/$node->nid/revisions/$node->vid/view");
+            // .' ('. theme('username', user_load(array('uid' => $node->uid))) .')';
+            }
+            $block = array();
+            $block['subject'] = l(t('!count revisions pending', array('!count' => count($nodes))), 'content/pending');
+            $block['content'] = theme('item_list', $links);
+            return $block;
           }
-          $links[] = l($node->title, "node/$node->nid/revisions/$node->vid/view")
-            .' ('. theme('username', user_load(array('uid' => $node->uid))) .')';
         }
-        $block = array();
-        $block['subject'] = l(t('!count revisions pending', array('!count' => count($nodes))), 'content/pending');
-        $block['content'] = theme('item_list', $links);
-        return $block;
       }
   }
 }
