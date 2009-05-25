@@ -50,7 +50,6 @@ function revisioning_menu() {
     'access arguments' => array('access content summary'),
     'weight' => -20
   );
-
   // Callback (not a menu item) to allow users to edit specified revision
   $items['node/%node/revisions/%/edit'] = array(
   //'title' => t('Edit revision'),
@@ -63,7 +62,6 @@ function revisioning_menu() {
     'file path' => drupal_get_path('module', 'node'),
     'type' => MENU_CALL_BACK,
   );
-
   // Callback to allow users to publish revisions
   $items['node/%node/revisions/%/publish'] = array(
   //'title' => t('Publish revision'),
@@ -74,7 +72,6 @@ function revisioning_menu() {
     'access arguments' => array('publish revisions', 1),
     'type' => MENU_CALLBACK,
   );
-
   // Callback to allow users to unpublish a node
   $items['node/%node/unpublish'] = array(
   //'title' => t('Unpublish'),
@@ -84,7 +81,13 @@ function revisioning_menu() {
     'access arguments' => array('unpublish current revision', 1),
     'type' => MENU_CALLBACK,
   );
-
+  $items['admin/settings/revisioning'] = array(
+    'title' => 'Revisioning',
+    'description' =>  'Configure global revisioning options.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('revisioning_admin_settings'),
+    'access arguments' => array('administer site configuration'),
+  );
   return $items;
 }
 
@@ -147,6 +150,23 @@ function _show_node_revisions($node) {
 }
 
 /**
+ * Menu callback for admin settings.
+ */
+function revisioning_admin_settings() {
+  $form['revisioning_publication_options'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Publication options'),
+  );
+  $form['revisioning_publication_options']['revisioning_auto_publish'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Auto-publish initial drafts and pending content upon saving (for moderators).'),
+    '#default_value' => variable_get('revisioning_auto_publish', TRUE),
+    '#description' => t('If this box is ticked and the logged-in user has the "publish revisions" permission, then initial drafts and pending revisions are published immeditaley upon saving, without further review.')
+  );
+  return system_settings_form($form);
+}
+
+/**
  * Implementation of hook_form_alter().
  *
  * On node edit form, add the "New revisions in moderation" tick-box.
@@ -197,10 +217,30 @@ function revisioning_form_node_type_form_alter(&$form, &$form_state) {
  */
 function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
   $args = arg();
-  // Only interested in URIs that start with "node/<nid>"
+  if ($args[1] == 'add') {
+    switch ($op) {
+      case 'presave':
+        if (!$node->status && variable_get('revisioning_auto_publish', TRUE) && user_access('publish revisions')) {
+          drupal_set_message("Auto-publishing initial revision.");
+          $node->status = TRUE;
+        }
+        return;
+      
+      case 'insert':  
+        if ($node->status) {
+          drupal_set_message(t('Initial revision created and published.'));
+        }
+        else {
+          drupal_set_message(t('Initial revision created, pending publication.'));
+        }
+        return;
+     }
+  }
+  // From here onwards only interested in URIs that start with "node/<nid>"
   if ($args[0] != 'node' || !is_numeric($args[1])) {
     return;
   }
+
   switch ($op) {
     case 'alter': // called just after $node object is fully built
       if (module_grants_node_revision_access('view revisions', $node)) {
@@ -211,15 +251,6 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
         if (!isset($theme_engine)) {
           _theme_content_menu($node);
         }
-      }
-      return;
-
-    case 'insert':
-      if ($node->status) {
-        drupal_set_message(t('Initial revision created and published.'));
-      }
-      else {
-        drupal_set_message(t('Initial revision created, pending publication.'));
       }
       return;
 
@@ -239,29 +270,36 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
         drupal_set_message(t('Please note there are !count revisions more recent than the one you are about to edit.', array('!count' => $count)), 'warning');
       }
     }
-    // Check if "Revisions in moderation" box ticked under Workflow options
+    // Check if "Revisions in moderation" box ticked under Content types>>Workflow settings
     if ($node->revision_moderation) {
-        switch ($op) {
-          case 'presave': // called from start of node_save()
+      switch ($op) {
+        case 'presave': // called from start of node_save()
+          if (variable_get('revisioning_auto_publish', TRUE) && user_access('publish revisions') && _is_pending($node)) {
+            // By-pass moderation and make sure node is published 
+            drupal_set_message("Auto-publishing pending revision.");
+            $node->status = TRUE;
+          }
+          else {
             // Save the vid for subsequent restore during 'update' op
             $node->original_vid = _get_current_revision_id($node->nid);
-            $node->original_revision = $node->revision;
-            if ($node->revision && variable_get('new_revisions_'. $node->type, NEW_REVISION_WHEN_NOT_PENDING) == NEW_REVISION_WHEN_NOT_PENDING) {
-              if (_is_pending($node)) {
-                // Not creating new revision as this revision is still pending
-                $node->revision = FALSE;
-              }
+          }
+          $node->original_revision = $node->revision;
+          if ($node->revision && variable_get('new_revisions_'. $node->type, NEW_REVISION_WHEN_NOT_PENDING) == NEW_REVISION_WHEN_NOT_PENDING) {
+            if (_is_pending($node)) {
+              // Not creating new revision as this revision is still pending
+              $node->revision = FALSE;
             }
-            break;
+          }
+          break;
 
-          case 'update': // called from end of node_save(), after _node_save_revision()
-            $node->revision = $node->original_revision;
-            if (isset($node->original_vid)) {
-              // Resetting node vid back to its originial value, thus creating pending revision
-              db_query("UPDATE {node} SET vid=%d WHERE nid=%d", $node->original_vid, $node->nid);
-            }
-            break;
-        }
+        case 'update': // called from end of node_save(), after _node_save_revision()
+          $node->revision = $node->original_revision;
+          if (isset($node->original_vid) && $node->original_vid != $node->vid) {
+            // Resetting node vid back to its originial value, thus creating pending revision
+            db_query("UPDATE {node} SET vid=%d WHERE nid=%d", $node->original_vid, $node->nid);
+          }
+          break;
+      }
     }
     elseif ($op == 'update') {
       drupal_set_message(t('Your changes are now current as moderation is switched off for this content.'), 'warning');
@@ -646,7 +684,7 @@ function _get_current_revision_id($nid) {
 function _is_pending($node) {
   return 
    ($node->vid > _get_current_revision_id($node->nid)) ||
-   (!$node->status && db_result(db_query("SELECT COUNT(vid) node_revisions WHERE nid=%d)", $nid)) == 1);
+   (!$node->status && db_result(db_query("SELECT COUNT(vid) node_revisions WHERE nid=%d", $node->nid)) == 1);
 }
 
 /**
