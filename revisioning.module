@@ -12,7 +12,6 @@ require_once drupal_get_path('module', 'revisioning') .'/revisioning_triggers_ac
 
 define('NEW_REVISION_WHEN_NOT_PENDING', 0);
 define('NEW_REVISION_EVERY_SAVE', 1);
-define('NO_FILTER', -1);
 
 /**
  * Implementation of hook_help().
@@ -43,11 +42,20 @@ function revisioning_perm() {
 function revisioning_menu() {
   $items = array();
 
-  // Add a tab to the 'My content' menu (as defined in module_grants.module)
-  // and make it the default
-  $items['content/pending'] = array(
+  // Add a tab to the 'Content I can access' menu (defined in 
+  // module_grants.module) and make it the default
+  $items['content-i-can-access/pending'] = array(
     'title' => 'Pending',
     'page callback' => '_show_pending_nodes',
+    'access arguments' => array('access content summary'),
+    'weight' => -20
+  );
+  // Add a tab to the 'Content I created' menu (defined in 
+  // module_grants.module) and make it the default
+  $items['content-i-created/pending'] = array(
+    'title' => 'Pending',
+    'page callback' => '_show_pending_nodes',
+    'page arguments' => array(TRUE),
     'access arguments' => array('access content summary'),
     'weight' => -20
   );
@@ -100,11 +108,17 @@ function revisioning_menu() {
  */
 function revisioning_menu_alter(&$items) {
 
-  // Change 'My content' default tab from Editable to Pending
-  $items['content']['page callback'] = '_show_pending_nodes';
-  $items['content/editable']['type'] = MENU_LOCAL_TASK;
-  $items['content/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
-
+  // Change 'Content I can access' default tab from Editable to Pending
+  $items['content-i-can-access']['page callback'] = '_show_pending_nodes';
+  $items['content-i-can-access']['page arguments'] = array(FALSE);
+  $items['content-i-can-access/editable']['type'] = MENU_LOCAL_TASK;
+  $items['content-i-can-access/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
+  
+  // Change 'Content I created' default tab from Editable to Pending
+  $items['content-i-created']['page callback'] = '_show_pending_nodes';
+  $items['content-i-created']['page arguments'] = array(TRUE);
+  $items['content-i-created/editable']['type'] = MENU_LOCAL_TASK;
+  $items['content-i-created/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
   // Rename "View" tab
   $items['node/%node/view']['title'] = 'View current';
 
@@ -136,10 +150,18 @@ function revisioning_menu_alter(&$items) {
 }
 
 /**
- * Display a list of nodes that have pending revisions in a themed table.
+ * Return as a themed table a list of nodes that have pending revisions.
+ * access rights of the logged-in user.
+ * 
+ * @param $created_by_user
+ *   TRUE to filter by logged-in user
+ * @return 
+ *   themed HTML
  */
-function _show_pending_nodes() {
-  return theme('nodes_summary', get_nodes('update', NO_FILTER, NO_FILTER, TRUE)); // see: module_grants
+function _show_pending_nodes($created_by_user = FALSE) {
+  global $user;
+  $nodes = get_nodes('update', TRUE, $created_by_user ? $user->uid : -1);
+  return theme('nodes_summary', $nodes);
 }
 
 /**
@@ -783,7 +805,7 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
             // .' ('. theme('username', user_load(array('uid' => $node->uid))) .')';
             }
             $block = array();
-            $block['subject'] = l(t('!count revisions pending', array('!count' => count($nodes))), 'content/pending');
+            $block['subject'] = l(t('!count revisions pending', array('!count' => count($nodes))), 'content-i-can-access');
             $block['content'] = theme('item_list', $links);
             return $block;
           }
