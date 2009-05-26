@@ -27,6 +27,10 @@ function revisioning_theme() {
     'revisions_summary' => array(
       'arguments' => array('submenu_links' => NULL, 'content' => NULL),
       'template' => 'revisions-summary', // revisions-summary.tpl.php
+    ),
+    'revisions_pending_block' => array(
+      'arguments' => array('content' => NULL),
+      'template' => 'revisions-pending-block', // revisions-pending-block.tpl.php
     )
   );
 }
@@ -276,3 +280,19 @@ function _theme_content_menu(&$node) {
   $node->body = theme(array('revision_submenu', 'submenu'), $submenu_links) . $node->body;
 }
 
+function _theme_revisions_pending_block($nodes, $max_num_shown) {
+  $links = array();
+  $i = 0;
+  foreach ($nodes as $node) {
+    if ($i++ >= $max_num_shown) {
+      break;
+    }
+    $links[] = l($node->title, "node/$node->nid/revisions/$node->vid/view");
+  }
+  $css_path = drupal_get_path('module', 'revisioning') .'/revisioning.css';
+  drupal_add_css($css_path, 'module', 'all', FALSE); // also loads /revisioning-rtl.css
+  $block = array();
+  $block['subject'] = l(t('!count revisions pending', array('!count' => count($nodes))), 'content-i-can-access');
+  $block['content'] = theme('item_list', $links);
+  return $block;
+}

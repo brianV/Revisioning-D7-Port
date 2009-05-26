@@ -781,7 +781,8 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
       $form['revisioning_block_num_pending'] = array(
         '#type' => 'textfield',
         '#title' => t('Maximum number of pending revisions displayed'),
-        '#default_value' => variable_get('revisioning_block_num_pending', 5)
+        '#default_value' => variable_get('revisioning_block_num_pending', 5),
+        '#description' => t('Note: the title of this block mentions the total number of revisions pending, which may be greater than the number of revisions displayed.')
       );
       return $form;
 
@@ -795,19 +796,7 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
         if ($max_num_shown > 0) {
           $nodes = get_nodes('update', NO_FILTER, NO_FILTER, TRUE, 'vid ASC');
           if (!empty($nodes)) {
-            $links = array();
-            $i = 0;
-            foreach ($nodes as $node) {
-              if ($i++ >= $max_num_shown) {
-                break;
-              }
-              $links[] = l($node->title, "node/$node->nid/revisions/$node->vid/view");
-            // .' ('. theme('username', user_load(array('uid' => $node->uid))) .')';
-            }
-            $block = array();
-            $block['subject'] = l(t('!count revisions pending', array('!count' => count($nodes))), 'content-i-can-access');
-            $block['content'] = theme('item_list', $links);
-            return $block;
+            return _theme_revisions_pending_block($nodes, $max_num_shown);
           }
         }
       }
