@@ -63,4 +63,5 @@ o [#465890] Option to create new revisions at every save, as opposed to only
 6.x-2.6
 =======
 o Update of German translations [thanks: rastatt]
-o Pending revisions block
+o Pending revisions alert block
+o Auto-publish on save option (for moderators)

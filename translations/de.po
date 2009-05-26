@@ -131,7 +131,7 @@ msgid "Every time content is saved"
 msgstr "Jedes Mal wenn Inhalt gespeichert wird"
 
 #: revisioning.module:191
-msgid "Save on disk space and avoid cluttering your revisions list. With the first option ticked, modifications are saved to the same copy (i.e. no additional revisions are created) until the content is published. This selection applies only when \"Create new revision\" and \"New revisions in moderation\" are both ticked."
+msgid "Use less disk space and avoid cluttering your revisions list. With the first option ticked, modifications are saved to the same copy (i.e. no additional revisions are created) until the content is published. This selection applies only when \"Create new revision\" and \"New revisions in moderation\" are both ticked."
 msgstr "Plattenplatz speichern und Unordnung in den Versionslisten vermeiden. Wenn die erste Option ausgewählt ist, werden änderungen in die selbe Kopie gespeichert (d.h. es werden keine zusätzliche Versionen erstellt) bis der Inhalt veröffentlicht wird. Diese Auswahl wird nur angewendet, wenn „Neue Version erstellen“ und „Neue Version in Moderation“ gemeinsam ausgewählt werden."
 
 #: revisioning.module:219
@@ -151,7 +151,7 @@ msgid "Please note there are !count revisions more recent than the one you are a
 msgstr "Es gibt !count Versionen, die neuer sind als die zum Bearbeiten ausgewählte."
 
 #: revisioning.module:269
-msgid "Your changes are now current as moderation is switched off for this content."
+msgid "Your changes are now current as moderation is switched off for this content type."
 msgstr "Die Änderungen sind jetzt aktuell, da Moderation für diesen Inhalt ausgeschaltet ist."
 
 #: revisioning.module:295
