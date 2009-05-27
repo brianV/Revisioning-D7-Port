@@ -41,24 +41,44 @@ function revisioning_perm() {
  */
 function revisioning_menu() {
   $items = array();
-
-  // Add a tab to the 'Content I can access' menu (defined in 
-  // module_grants.module) and make it the default
-  $items['content-i-can-access/pending'] = array(
+  // Add a tab to the 'I can access' tab (defined in module_grants.module)
+  $items['content-admin/accessible/in-draft'] = array(
+    'title' => 'In draft',
+    'page callback' => _show_nodes_with_drafts,
+    'page arguments' => array(FALSE),
+    'access arguments' => array('access content summary'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -10
+  );
+  
+  // Add a tab to the 'I created' tab (defined in module_grants.module)
+  $items['content-admin/i-created/in-draft'] = array(
+    'title' => 'In draft',
+    'page callback' => _show_nodes_with_drafts,
+    'page arguments' => array(TRUE),
+    'access arguments' => array('access content summary'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -10
+  );
+  // Add a tab to the 'I can access' tab (defined in module_grants.module)
+  $items['content-admin/accessible/pending'] = array(
     'title' => 'Pending',
     'page callback' => '_show_pending_nodes',
+    'page arguments' => array(FALSE),
     'access arguments' => array('access content summary'),
-    'weight' => -20
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -9
   );
-  // Add a tab to the 'Content I created' menu (defined in 
-  // module_grants.module) and make it the default
-  $items['content-i-created/pending'] = array(
+  // Add a tab to the 'I created' tab (defined in module_grants.module)
+  $items['content-admin/i-created/pending'] = array(
     'title' => 'Pending',
     'page callback' => '_show_pending_nodes',
     'page arguments' => array(TRUE),
     'access arguments' => array('access content summary'),
-    'weight' => -20
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -9
   );
+  
   // Callback (not a menu item) to allow users to edit specified revision
   $items['node/%node/revisions/%/edit'] = array(
   //'title' => t('Edit revision'),
@@ -108,17 +128,20 @@ function revisioning_menu() {
  */
 function revisioning_menu_alter(&$items) {
 
-  // Change 'Content I can access' default tab from Editable to Pending
-  $items['content-i-can-access']['page callback'] = '_show_pending_nodes';
-  $items['content-i-can-access']['page arguments'] = array(FALSE);
-  $items['content-i-can-access/editable']['type'] = MENU_LOCAL_TASK;
-  $items['content-i-can-access/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
+  // Change 'I created' default tab from Editable to Pending
+  $items['content-admin']['page callback'] = '_show_pending_nodes';
+  $items['content-admin']['page arguments'] = array(TRUE);
+  $items['content-admin/i-created']['page callback'] = '_show_pending_nodes';
+  $items['content-admin/i-created']['page arguments'] = array(TRUE);
+  $items['content-admin/i-created/editable']['type'] = MENU_LOCAL_TASK;
+  $items['content-admin/i-created/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
+
+  // Change 'I can access' default tab from Editable to Pending
+  $items['content-admin/accessible']['page callback'] = '_show_pending_nodes';
+  $items['content-admin/accessible']['page arguments'] = array(FALSE);
+  $items['content-admin/accessible/editable']['type'] = MENU_LOCAL_TASK;
+  $items['content-admin/accessible/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
   
-  // Change 'Content I created' default tab from Editable to Pending
-  $items['content-i-created']['page callback'] = '_show_pending_nodes';
-  $items['content-i-created']['page arguments'] = array(TRUE);
-  $items['content-i-created/editable']['type'] = MENU_LOCAL_TASK;
-  $items['content-i-created/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
   // Rename "View" tab
   $items['node/%node/view']['title'] = 'View current';
 
@@ -150,6 +173,16 @@ function revisioning_menu_alter(&$items) {
 }
 
 /**
+ * Return as a themed table a list of nodes that are currently in draft.
+ * 
+ */
+function _show_nodes_with_drafts($created_by_user = TRUE) {
+  global $user;
+  return $created_by_user 
+    ? '<p>Imagine here a list of all drafts created by user '. theme('username', user_load(array('uid' => $user->uid)))
+    : '<p>One day this will show all nodes accessible to this user that have outstanding drafts.</p>'; 
+}
+/**
  * Return as a themed table a list of nodes that have pending revisions.
  * access rights of the logged-in user.
  * 
@@ -160,7 +193,7 @@ function revisioning_menu_alter(&$items) {
  */
 function _show_pending_nodes($created_by_user = FALSE) {
   global $user;
-  $nodes = get_nodes('update', TRUE, $created_by_user ? $user->uid : -1);
+  $nodes = get_nodes('update', NO_FILTER, $created_by_user ? $user->uid : NO_FILTER, TRUE);
   return theme('nodes_summary', $nodes);
 }
 
@@ -796,7 +829,7 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
         if ($max_num_shown > 0) {
           $nodes = get_nodes('update', NO_FILTER, NO_FILTER, TRUE, 'vid ASC');
           if (!empty($nodes)) {
-            return _theme_revisions_pending_block($nodes, $max_num_shown);
+            return _theme_revisions_pending_block(array_slice($nodes, 0, $max_num_shown));
           }
         }
       }
