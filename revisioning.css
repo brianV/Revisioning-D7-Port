@@ -31,6 +31,6 @@ div.block-revisioning ul {
 }
 
 div.block-revisioning ul li {
-  list-style-type: square;
+/*list-style-type: square;*/
   margin: 0;
 }

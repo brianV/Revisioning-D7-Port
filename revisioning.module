@@ -12,6 +12,8 @@ require_once drupal_get_path('module', 'revisioning') .'/revisioning_triggers_ac
 
 define('NEW_REVISION_WHEN_NOT_PENDING', 0);
 define('NEW_REVISION_EVERY_SAVE', 1);
+define('OLDEST_AT_TOP', 0);
+define('NEWEST_AT_TOP', 1);
 
 /**
  * Implementation of hook_help().
@@ -41,6 +43,7 @@ function revisioning_perm() {
  */
 function revisioning_menu() {
   $items = array();
+/*
   // Add a tab to the 'I can access' tab (defined in module_grants.module)
   $items['content-admin/accessible/in-draft'] = array(
     'title' => 'In draft',
@@ -60,6 +63,7 @@ function revisioning_menu() {
     'type' => MENU_LOCAL_TASK,
     'weight' => -10
   );
+*/
   // Add a tab to the 'I can access' tab (defined in module_grants.module)
   $items['content-admin/accessible/pending'] = array(
     'title' => 'Pending',
@@ -817,20 +821,28 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
         '#default_value' => variable_get('revisioning_block_num_pending', 5),
         '#description' => t('Note: the title of this block mentions the total number of revisions pending, which may be greater than the number of revisions displayed.')
       );
+      $form['revisioning_block_order'] = array(
+        '#type' => 'radios',
+        '#title' => t('Order in which pending revisions are displayed'),
+        '#options' => array(
+          OLDEST_AT_TOP => t('Oldest at top'),
+          NEWEST_AT_TOP => t('Newest at top')),
+        '#default_value' => variable_get('revisioning_block_order', OLDEST_AT_TOP),
+        '#description' => t('Note: order is based on revision timestamps.')
+      );
       return $form;
 
     case 'save':
       variable_set('revisioning_block_num_pending', (int)$edit['revisioning_block_num_pending']);
+      variable_set('revisioning_block_order', (int)$edit['revisioning_block_order']);
       break;
 
     case 'view':
       if (user_access("view revisions")) {
-        $max_num_shown = variable_get('revisioning_block_num_pending', 5);
-        if ($max_num_shown > 0) {
-          $nodes = get_nodes('update', NO_FILTER, NO_FILTER, TRUE, 'vid ASC');
-          if (!empty($nodes)) {
-            return _theme_revisions_pending_block(array_slice($nodes, 0, $max_num_shown));
-          }
+        $order = variable_get('revisioning_block_order', OLDEST_AT_TOP) == OLDEST_AT_TOP ? 'ASC' : 'DESC';
+        $nodes = get_nodes('update', NO_FILTER, NO_FILTER, TRUE, "timestamp $order");
+        if (!empty($nodes)) {
+          return _theme_revisions_pending_block($nodes);
         }
       }
   }
