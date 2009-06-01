@@ -40,9 +40,9 @@ INSTALLATION
 3. Under Administer >> Content >> Content types, click "edit" next to the
    content types for which you wish to enable/disable revisioning. Under
    "Workflow Settings", Default Options, tick both the "Create new revision"
-   and "New revisions in moderation" checkboxes. Also in this section UNtick
-   "Published", so that all new content is created in an unpubished state,
-   i.e. invisible to the public.
+   and "New revision in draft, pending moderation" checkboxes. Also in this
+   section UNtick "Published", so that all new content is created in an 
+   unpubished state, i.e. invisible to the public.
 4. The module creates a new root menu item, named "My content" with three tabs:
    o "Viewable" shows all nodes that may be viewed by the logged-in user
    o "Editable" shows all nodes that may be edited by the logged-in user

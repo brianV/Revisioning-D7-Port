@@ -202,7 +202,7 @@ function theme_revisioning_revisions_summary($form) {
       $row[] = array('data' => theme('placeholder', $node->status ? t('current revision (published)') : t('current revision (unpublished)')));
     }
     else {
-      $row[] = array('data' => $is_pending ? t('pending moderation') : t('archived')); 
+      $row[] = array('data' => $is_pending ? t('in draft/pending moderation') : t('archived')); 
     }
     $row_style = $is_current ? 'revision-current' : ($is_pending ? 'revision-pending' : NULL);
     if ($is_current && $node->status) {
@@ -292,7 +292,7 @@ function _theme_revisions_pending_block($nodes) {
   $block = array();
   $block['subject'] = l(t('!num_revisions pending', 
     array('!num_revisions' => format_plural(count($nodes), '1 revision', '@count revisions'))), 
-    'content-admin/accessible');
+    'accessible-content/i-can-edit');
   $block['content'] = theme('item_list', $links);
   return $block;
 }

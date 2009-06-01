@@ -64,7 +64,7 @@ msgid "current revision (unpublished)"
 msgstr "aktuelle Version (nicht veröffentlicht)"
 
 #: revisioning_theme.inc:201
-msgid "pending moderation"
+msgid "in draft/pending moderation"
 msgstr "ausstehende Moderation"
 
 #: revisioning_theme.inc:201
@@ -115,7 +115,7 @@ msgid "To edit, publish or delete one of the revisions below, click on its saved
 msgstr "Um eine der unten stehenden Versionen zu bearbeiten, veröffentlichen oder löschen muss auf das Speicherdatum geklickt werden."
 
 #: revisioning.module:162;183
-msgid "New revisions in moderation"
+msgid "New revision in draft, pending moderation"
 msgstr "Neue Version in Moderation"
 
 #: revisioning.module:185
@@ -131,7 +131,7 @@ msgid "Every time content is saved"
 msgstr "Jedes Mal wenn Inhalt gespeichert wird"
 
 #: revisioning.module:191
-msgid "Use less disk space and avoid cluttering your revisions list. With the first option ticked, modifications are saved to the same copy (i.e. no additional revisions are created) until the content is published. This selection applies only when \"Create new revision\" and \"New revisions in moderation\" are both ticked."
+msgid "Use less disk space and avoid cluttering your revisions list. With the first option ticked, modifications are saved to the same copy (i.e. no additional revisions are created) until the content is published."
 msgstr "Plattenplatz speichern und Unordnung in den Versionslisten vermeiden. Wenn die erste Option ausgewählt ist, werden änderungen in die selbe Kopie gespeichert (d.h. es werden keine zusätzliche Versionen erstellt) bis der Inhalt veröffentlicht wird. Diese Auswahl wird nur angewendet, wenn „Neue Version erstellen“ und „Neue Version in Moderation“ gemeinsam ausgewählt werden."
 
 #: revisioning.module:219
@@ -139,7 +139,7 @@ msgid "Initial revision created and published."
 msgstr "Erste Version erstellt und veröffentlicht."
 
 #: revisioning.module:222
-msgid "Initial revision created, pending publication."
+msgid "Initial draft created, pending publication."
 msgstr "Erste Version erstellt, Veröffentlichung steht an"
 
 #: revisioning.module:236

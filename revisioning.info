@@ -9,3 +9,10 @@ version = "6.x-2.3"
 core = "6.x"
 project = "revisioning"
 datestamp = "1242175250"
+
+; Information added by drupal.org packaging script on 2009-05-28
+version = "6.x-2.x-dev"
+core = "6.x"
+project = "revisioning"
+datestamp = "1243513792"
+

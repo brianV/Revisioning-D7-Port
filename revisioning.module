@@ -40,49 +40,48 @@ function revisioning_perm() {
  *
  * Define new menu items.
  * Existing menu items are modified through hook_menu_alter().
+ * @todo add "In draft" tab
  */
 function revisioning_menu() {
   $items = array();
-/*
-  // Add a tab to the 'I can access' tab (defined in module_grants.module)
-  $items['content-admin/accessible/in-draft'] = array(
-    'title' => 'In draft',
-    'page callback' => _show_nodes_with_drafts,
-    'page arguments' => array(FALSE),
-    'access arguments' => array('access content summary'),
-    'type' => MENU_LOCAL_TASK,
-    'weight' => -10
-  );
-  
+
   // Add a tab to the 'I created' tab (defined in module_grants.module)
-  $items['content-admin/i-created/in-draft'] = array(
-    'title' => 'In draft',
-    'page callback' => _show_nodes_with_drafts,
-    'page arguments' => array(TRUE),
-    'access arguments' => array('access content summary'),
-    'type' => MENU_LOCAL_TASK,
-    'weight' => -10
-  );
-*/
-  // Add a tab to the 'I can access' tab (defined in module_grants.module)
-  $items['content-admin/accessible/pending'] = array(
-    'title' => 'Pending',
+  $items['accessible-content/i-created/pending'] = array(
+    'title' => 'In draft/Pending publication',
     'page callback' => '_show_pending_nodes',
-    'page arguments' => array(FALSE),
+    'page arguments' => array('view', I_CREATED),
     'access arguments' => array('access content summary'),
     'type' => MENU_LOCAL_TASK,
-    'weight' => -9
+    'weight' => -1
   );
-  // Add a tab to the 'I created' tab (defined in module_grants.module)
-  $items['content-admin/i-created/pending'] = array(
-    'title' => 'Pending',
+  // Add a tab to the 'I last modified' tab (defined in module_grants.module)
+  $items['accessible-content/i-last-modified/pending'] = array(
+    'title' => 'In draft/Pending publication',
     'page callback' => '_show_pending_nodes',
-    'page arguments' => array(TRUE),
+    'page arguments' => array('view', I_LAST_MODIFIED),
     'access arguments' => array('access content summary'),
     'type' => MENU_LOCAL_TASK,
-    'weight' => -9
+    'weight' => -1
   );
-  
+   // Add a tab to the 'I can edit' tab (defined in module_grants.module)
+  $items['accessible-content/i-can-edit/pending'] = array(
+    'title' => 'In draft/Pending publication',
+    'page callback' => '_show_pending_nodes',
+    'page arguments' => array('update'),
+    'access arguments' => array('access content summary'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -1
+  );
+  // Add a tab to the 'I can view' tab (defined in module_grants.module)
+  $items['accessible-content/i-can-view/pending'] = array(
+    'title' => 'In draft/Pending publication',
+    'page callback' => '_show_pending_nodes',
+    'page arguments' => array('view'),
+    'access arguments' => array('access content summary'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -1
+  );
+
   // Callback (not a menu item) to allow users to edit specified revision
   $items['node/%node/revisions/%/edit'] = array(
   //'title' => t('Edit revision'),
@@ -132,20 +131,30 @@ function revisioning_menu() {
  */
 function revisioning_menu_alter(&$items) {
 
-  // Change 'I created' default tab from Editable to Pending
-  $items['content-admin']['page callback'] = '_show_pending_nodes';
-  $items['content-admin']['page arguments'] = array(TRUE);
-  $items['content-admin/i-created']['page callback'] = '_show_pending_nodes';
-  $items['content-admin/i-created']['page arguments'] = array(TRUE);
-  $items['content-admin/i-created/editable']['type'] = MENU_LOCAL_TASK;
-  $items['content-admin/i-created/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
+  // Change secondary filter tab default from Published' to 'In draft/Pending publication'
+  $items['accessible-content']['page callback'] = '_show_pending_nodes';
+  $items['accessible-content']['page arguments'] = array('view', I_LAST_MODIFIED);
 
-  // Change 'I can access' default tab from Editable to Pending
-  $items['content-admin/accessible']['page callback'] = '_show_pending_nodes';
-  $items['content-admin/accessible']['page arguments'] = array(FALSE);
-  $items['content-admin/accessible/editable']['type'] = MENU_LOCAL_TASK;
-  $items['content-admin/accessible/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
-  
+  $items['accessible-content/i-created']['page callback'] = '_show_pending_nodes';
+  $items['accessible-content/i-created']['page arguments'] = array('view', I_CREATED);
+  $items['accessible-content/i-created/published']['type'] = MENU_LOCAL_TASK;
+  $items['accessible-content/i-created/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
+
+  $items['accessible-content/i-last-modified']['page callback'] = '_show_pending_nodes';
+  $items['accessible-content/i-last-modified']['page arguments'] = array('view', I_LAST_MODIFIED);
+  $items['accessible-content/i-last-modified/published']['type'] = MENU_LOCAL_TASK;
+  $items['accessible-content/i-last-modified/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
+
+  $items['accessible-content/i-can-edit']['page callback'] = '_show_pending_nodes';
+  $items['accessible-content/i-can-edit']['page arguments'] = array('update');
+  $items['accessible-content/i-can-edit/published']['type'] = MENU_LOCAL_TASK;
+  $items['accessible-content/i-can-edit/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
+
+  $items['accessible-content/i-can-view']['page callback'] = '_show_pending_nodes';
+  $items['accessible-content/i-can-view']['page arguments'] = array('view');
+  $items['accessible-content/i-can-view/published']['type'] = MENU_LOCAL_TASK;
+  $items['accessible-content/i-can-view/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
+
   // Rename "View" tab
   $items['node/%node/view']['title'] = 'View current';
 
@@ -177,27 +186,19 @@ function revisioning_menu_alter(&$items) {
 }
 
 /**
- * Return as a themed table a list of nodes that are currently in draft.
- * 
- */
-function _show_nodes_with_drafts($created_by_user = TRUE) {
-  global $user;
-  return $created_by_user 
-    ? '<p>Imagine here a list of all drafts created by user '. theme('username', user_load(array('uid' => $user->uid)))
-    : '<p>One day this will show all nodes accessible to this user that have outstanding drafts.</p>'; 
-}
-/**
  * Return as a themed table a list of nodes that have pending revisions.
  * access rights of the logged-in user.
- * 
- * @param $created_by_user
- *   TRUE to filter by logged-in user
+ *
+ * @param $op
+ *   Operation, one of 'view', 'update' or 'delete'.
+ * @param $user_filter
+ *   One of NO_FILTER, I_CREATED or I_LAST_MODIFIED.
  * @return 
  *   themed HTML
  */
-function _show_pending_nodes($created_by_user = FALSE) {
+function _show_pending_nodes($op = 'view', $user_filter = -1) {
   global $user;
-  $nodes = get_nodes('update', NO_FILTER, $created_by_user ? $user->uid : NO_FILTER, TRUE);
+  $nodes = get_nodes($op, -1, $user_filter == I_CREATED ? $user->uid : -1, $user_filter == I_LAST_MODIFIED ? $user->uid : -1, TRUE);
   return theme('nodes_summary', $nodes);
 }
 
@@ -213,38 +214,29 @@ function _show_node_revisions($node) {
  * Menu callback for admin settings.
  */
 function revisioning_admin_settings() {
-  $form['revisioning_publication_options'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Publication options'),
-  );
-  $form['revisioning_publication_options']['revisioning_auto_publish'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Auto-publish content upon saving (for moderators).'),
-    '#default_value' => variable_get('revisioning_auto_publish', FALSE),
-    '#description' => t('If this box is ticked and the logged-in user has the "publish revisions" permission, then any content is published immeditaley upon saving, without further review.')
-  );
-  return system_settings_form($form);
 }
 
 /**
  * Implementation of hook_form_alter().
  *
- * On node edit form, add the "New revisions in moderation" tick-box.
+ * On node edit form, add the "New revision in moderation" tick-box.
  */
 function revisioning_form_alter(&$form, &$form_state, $form_id) {
   // Note that $form_id = <content_type>_$form['#id']
   if (isset($form['#id']) && $form['#id'] == 'node-form') {
+    $form['options']['#collapsed'] = FALSE;
+
     $default_value = in_array('revision_moderation', variable_get("node_options_{$form['type']['#value']}", array('status', 'promote')));
-    // Only show the checkbox if user has the 'administer nodes' permission
+    // Only show this option if user has the 'administer nodes' permission
     if (user_access('administer nodes')) {
       $form['revision_information']['revision_moderation'] = array(
+        '#title' => t('New revision in draft, pending moderation'),
         '#type' => 'checkbox',
-        '#title' => t('New revisions in moderation'),
         '#default_value' => $default_value
       );
     }
     else {
-      // Don't show checkbox, set default on form
+      // Don't show option, just set default on form
       $form['revision_moderation'] = array(
         '#type' => 'value',
         '#value' => $default_value
@@ -257,19 +249,35 @@ function revisioning_form_alter(&$form, &$form_state, $form_id) {
  * Implementation of hook_node_type_form_alter().
  *
  * On content type edit form, add the "New revisions in moderation" tick-box
- * and a couple of radio-boxes to select the new revision policy.
+ * and a couple of radio-boxes to select the new revision and auto-publish
+ * policies.
  */
 function revisioning_form_node_type_form_alter(&$form, &$form_state) {
-  $form['workflow']['node_options']['#options']['revision_moderation'] = t('New revisions in moderation');
-  $form['workflow']['new_revisions'] = array(
+  $form['workflow']['#collapsed'] = FALSE;
+  $form['workflow']['node_options']['#options']['revision_moderation'] = t('New revision in draft, pending moderation (requires "Create new revision")');
+
+  $content_type = $form['#node_type']->type;
+  $form['workflow']['revisioning'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('New revision in draft'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE
+  );
+  $form['workflow']['revisioning']['new_revisions'] = array(
     '#title' => t('Create new revision'),
     '#type' => 'radios',
     '#options' => array(
-      NEW_REVISION_WHEN_NOT_PENDING => t('Only when saving content that is <em>not</em> pending'),
-      NEW_REVISION_EVERY_SAVE       => t('Every time content is saved')),
-    '#default_value' => variable_get('new_revisions_'. $form['#node_type']->type, NEW_REVISION_WHEN_NOT_PENDING),
-    '#description' => t('Use less disk space and avoid cluttering your revisions list. With the first option ticked, modifications are saved to the same copy (i.e. no additional revisions are created) until the content is published. This selection applies only when "Create new revision" and "New revisions in moderation" are both ticked.')
+      NEW_REVISION_WHEN_NOT_PENDING => t('Only when saving %type content that is not already in draft/pending moderation', array('%type' => $content_type)),
+      NEW_REVISION_EVERY_SAVE       => t('Every time %type content is updated, even when saving content in draft/pending moderation', array('%type' => $content_type))),
+    '#default_value' => (int)variable_get('new_revisions_'. $content_type, NEW_REVISION_WHEN_NOT_PENDING),
+    '#description' => t('Use less disk space and avoid cluttering your revisions list. With the first option ticked, modifications are saved to the same copy (i.e. no additional revisions are created) until the content is published.')
     );
+  $form['workflow']['revisioning']['revisioning_auto_publish'] = array(
+    '#title' => t('Auto-publish drafts of type %type (for moderators)', array('%type' => $content_type)),
+    '#type' => 'checkbox',
+    '#default_value' => (int)variable_get('revisioning_auto_publish_'. $content_type, 1),
+    '#description' => t('If this box is ticked and the logged-in user has the "publish revisions" permission, then any draft of type %type is published immeditaley upon saving, without further review.', array('%type' => $content_type))
+  );
 }
 
 /**
@@ -293,7 +301,7 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
   if ($op == 'alter') { // called just after $node object is fully built for display
     if (module_grants_node_revision_access('view revisions', $node)) {
       if (!$teaser && $node->nid == $args[1]) { // don't show msg on page with many nodes
-        drupal_set_message(_get_node_details($node));
+        drupal_set_message(_get_node_info_msg($node));
       }
       global $theme_engine;
       if (!isset($theme_engine)) {
@@ -309,11 +317,11 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
  * @param $op, only listening to 'presave' and 'insert'
  * @return nothing
  */
-function _handle_add($node, $op) {
+function _handle_add(&$node, $op) {
   switch ($op) {
     case 'presave':
-      if ($node->revision_moderation && !$node->status && variable_get('revisioning_auto_publish', FALSE) && user_access('publish revisions')) {
-        drupal_set_message("Auto-publishing initial revision.");
+      if ($node->revision_moderation && !$node->status && variable_get('revisioning_auto_publish_'. $node->type, FALSE) && (user_access('publish revisions'))) {
+        drupal_set_message(t('Auto-publishing initial draft as the first revision.'));
         $node->status = TRUE;
       }
       break;
@@ -323,7 +331,7 @@ function _handle_add($node, $op) {
         drupal_set_message(t('Initial revision created and published.'));
       }
       else {
-        drupal_set_message(t('Initial revision created, pending publication.'));
+        drupal_set_message(t('Initial draft created, pending publication.'));
       }
       break;
   }
@@ -335,7 +343,7 @@ function _handle_add($node, $op) {
  * @param $op, only listening to 'prepare', 'presave' and 'update'
  * @return nothing
  */
-function _handle_edit($node, $op) {
+function _handle_edit(&$node, $op) {
   if ($op == 'prepare') {
     $count = _number_of_revisions_newer_than($node->vid, $node->nid);
     if ($count == 1) {
@@ -356,9 +364,9 @@ function _handle_edit($node, $op) {
             $node->revision = FALSE;
           }
         }
-        if (variable_get('revisioning_auto_publish', FALSE) && user_access('publish revisions')) {
+        if (variable_get('revisioning_auto_publish_'. $node->type, FALSE) && user_access('publish revisions')) {
           // By-pass moderation and make sure node is published
-          drupal_set_message("Auto-publishing this revision.");
+          drupal_set_message(t('Auto-publishing this revision.'));
           $node->status = TRUE;
         }
         else {
@@ -627,7 +635,7 @@ function _get_all_revisions_for_node($nid, $include_taxonomy_terms = FALSE) {
  * @return
  *   A translatable message containing details about the node
  */
-function _get_node_details($node) {
+function _get_node_info_msg($node) {
   // Get username for the revision rather than the original node.
   $revision_author = user_load($node->revision_uid);
   $published = $node->status ? t('current, published') : t('current, unpublished');
@@ -757,7 +765,7 @@ function _get_current_revision_id($nid) {
 function _is_pending($node) {
   return
     ($node->vid > _get_current_revision_id($node->nid)) ||
-    (!$node->status && db_result(db_query("SELECT COUNT(vid) node_revisions WHERE nid=%d", $node->nid)) == 1);
+    (!$node->status && db_result(db_query("SELECT COUNT(vid) FROM {node_revisions} WHERE nid=%d", $node->nid)) == 1);
 }
 
 /**
@@ -838,9 +846,9 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
       break;
 
     case 'view':
-      if (user_access("view revisions")) {
+      if (user_access('view revisions') && (user_access('publish revisions') || user_access('administer nodes'))) {
         $order = variable_get('revisioning_block_order', OLDEST_AT_TOP) == OLDEST_AT_TOP ? 'ASC' : 'DESC';
-        $nodes = get_nodes('update', NO_FILTER, NO_FILTER, TRUE, "timestamp $order");
+        $nodes = get_nodes('update', NO_FILTER, NO_FILTER, NO_FILTER, TRUE, "timestamp $order", 100, FALSE);
         if (!empty($nodes)) {
           return _theme_revisions_pending_block($nodes);
         }
