@@ -15,4 +15,4 @@
     <?php print implode(' | ', $submenu_links); ?>
   </div>
   <hr/>
-<?php endif; ?>
+<?php endif;

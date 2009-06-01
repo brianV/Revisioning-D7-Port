@@ -175,8 +175,8 @@ function revisioning_menu_alter(&$items) {
 //$items['node/%node/revisions/%/view']['page arguments'] = array(1);
 
   // Override existing callback so that we can insert trigger pulled upon reverting
-  $items['node/%node/revisions/%/revert']['page callback'] = 'drupal_get_form';
-  $items['node/%node/revisions/%/revert']['page arguments'] = array('revisioning_revert_confirm', 1);
+  //$items['node/%node/revisions/%/revert']['page callback'] = 'drupal_get_form';
+  //$items['node/%node/revisions/%/revert']['page arguments'] = array('revisioning_revert_confirm', 1);
 
   // If Diff module is enabled, make sure it uses correct access callback
   if (module_exists('diff')) {
@@ -193,7 +193,7 @@ function revisioning_menu_alter(&$items) {
  *   Operation, one of 'view', 'update' or 'delete'.
  * @param $user_filter
  *   One of NO_FILTER, I_CREATED or I_LAST_MODIFIED.
- * @return 
+ * @return
  *   themed HTML
  */
 function _show_pending_nodes($op = 'view', $user_filter = -1) {
@@ -409,10 +409,11 @@ function revisioning_publish_confirm($form_state, $node) {
   $form['title']    = array('#type' => 'value', '#value' => $node->title);
   $form['revision'] = array('#type' => 'value', '#value' => $node->vid);
   $form['type']     = array('#type' => 'value', '#value' => $node->type);
-  return confirm_form($form, t('Are you sure you want to publish this revision of %title?', array('%title' => $node->title)),
-                             'node/'. $node->nid .'/revisions',
-                             t('Publishing this revision will make it visible to the public.'),
-                             t('Publish'), t('Cancel'));
+  return confirm_form($form,
+    t('Are you sure you want to publish this revision of %title?', array('%title' => $node->title)),
+    'node/'. $node->nid .'/revisions',
+    t('Publishing this revision will make it visible to the public.'),
+    t('Publish'), t('Cancel'));
 }
 
 /**
@@ -432,13 +433,14 @@ function revisioning_publish_confirm_submit($form, &$form_state) {
  * Return a confirmation page for unpublishing the node.
  */
 function revisioning_unpublish_confirm($form_state, $node) {
-  $form['node_id']  = array('#type' => 'value', '#value' => $node->nid);
-  $form['title']    = array('#type' => 'value', '#value' => $node->title);
-  $form['type']     = array('#type' => 'value', '#value' => $node->type);
-  return confirm_form($form, t('Are you sure you want to unpublish %title?', array('%title' => $node->title)),
-                             "node/$node->nid/revisions",
-                             t('Unpublishing will remove this content from public view.'),
-                             t('Unpublish'), t('Cancel'));
+  $form['node_id'] = array('#type' => 'value', '#value' => $node->nid);
+  $form['title']   = array('#type' => 'value', '#value' => $node->title);
+  $form['type']    = array('#type' => 'value', '#value' => $node->type);
+  return confirm_form($form,
+    t('Are you sure you want to unpublish %title?', array('%title' => $node->title)),
+    "node/$node->nid/revisions",
+    t('Unpublishing will remove this content from public view.'),
+    t('Unpublish'), t('Cancel'));
 }
 
 /**
@@ -457,6 +459,43 @@ function revisioning_unpublish_confirm_submit($form, &$form_state) {
   // Invoke the revisioning trigger passing 'unpublish' as the operation
   module_invoke_all('revisioning', 'unpublish');
 }
+
+/**
+ * Implementation of hook_form_FORM_ID_alter(), see node_revision_revert_confirm()
+ */
+function revisioning_form_node_revision_revert_confirm_alter(&$form_state, &$form_state) {
+  $node = $form['#node_revision'];
+  if (_number_of_pending_revisions($node->nid) > 0) {
+    drupal_set_message(t('There is a pending revision. Are you sure you want to revert to an archived revision?'), 'warning');
+  }
+  $form['#submit'][] = 'revision_revert_confirm_submit';
+}
+
+/**
+ * Submission handler for the revert_confirm form.
+ *
+ * Forward on to the existing revert function in node.pages.inc, then triggers
+ * a 'revert' event that may be actioned upon.
+ *
+ * Note:
+ * It would be nice if publish and revert were symmetrical operations and that
+ * node_revision_revert_cofirm_submit didn't save a copy of the revision (under
+ * a new vid), as this has the side-effect of making all "pending" revisions
+ * "old". This is because the definition of "pending" is:
+ * "node_vid > current_vid".
+ * It would be better if "pending" relied on a separate flag rather than a field
+ * such as vid (or a timestamp) that changes everytime a piece of code executes
+ * a node_save.
+ */
+function revisioning_revert_confirm_submit($form, &$form_state) {
+  $node = $form['#node_revision'];
+  // Make sure the node gets published, i.e. has its status flag set
+  db_query("UPDATE {node} SET status=1 WHERE nid=%d", $node->nid);
+  cache_clear_all();
+  // Invoke the revisioning trigger passing 'revert' as the operation
+  module_invoke_all('revisioning', 'revert');
+}
+
 
 /**
  * Make the supplied revision of the node current and publish it.
@@ -501,45 +540,6 @@ function revisioning_publish_latest_revision($node) {
   else {
     drupal_set_message(t('"!title" has no pending revision to be published.', array('!title' => $node->title)), 'warning');
   }
-}
-
-/**
- * Return a confirmation page prior to reverting to an archived revision.
- *
- * Forward to the existing revert function in node.pages.inc
- */
-function revisioning_revert_confirm($form_state, $node) {
-  if (_number_of_pending_revisions($node->nid) > 0) {
-    drupal_set_message(t('There is a pending revision. Are you sure you want to revert to an archived revision?'), 'warning');
-  }
-  return node_revision_revert_confirm($form_state, $node);
-}
-
-/**
- * Submission handler for the revert_confirm form.
- *
- * Forward on to the existing revert function in node.pages.inc, then triggers
- * a 'revert' event that may be actioned upon.
- *
- * Note:
- * It would be nice if publish and revert were symmetrical operations and that
- * node_revision_revert_cofirm_submit didn't save a copy of the revision (under
- * a new vid), as this has the side-effect of making all "pending" revisions
- * "old". This is because the definition of "pending" is:
- * "node_vid > current_vid".
- * It would be better if "pending" relied on a separate flag rather than a field
- * such as vid (or a timestamp) that changes everytime a piece of code executes
- * a node_save.
- */
-function revisioning_revert_confirm_submit($form, &$form_state) {
-  $node = $form['#node_revision'];
-  // Next call redirects to node/%/revisions
-  node_revision_revert_confirm_submit($form, $form_state);
-  // Make sure node gets published, i.e. has its status flag set
-  db_query("UPDATE {node} SET status=1 WHERE nid=%d", $node->nid);
-  cache_clear_all();
-  // Invoke the revisioning trigger passing 'revert' as the operation
-  module_invoke_all('revisioning', 'revert');
 }
 
 /**

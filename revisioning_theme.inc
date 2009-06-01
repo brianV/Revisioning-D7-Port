@@ -138,8 +138,9 @@ function revisioning_revisions_summary_submit($form, &$form_state) {
   next($selected_vids);
   $vid2 = key($selected_vids);
   drupal_get_messages(); // clear existing msgs
-  drupal_set_message(t('Comparing revision #!revision2 against revision #!revision1',
-                     array('!revision2' => $vid2, '!revision1' => $vid1)));
+  drupal_set_message(
+    t('Comparing revision #!revision2 against revision #!revision1',
+    array('!revision2' => $vid2, '!revision1' => $vid1)));
   $nid = $form_state['values']['nid'];
   $form_state['redirect'] = "node/$nid/revisions/view/$vid2/$vid1";
 }

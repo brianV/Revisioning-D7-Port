@@ -88,7 +88,8 @@ function revisioning_action_info() {
  */
 function revisioning_publish_latest_revision_action(&$node, $context = array()) {
   $type = node_get_types('name', $node->type);
-  watchdog('revisioning', 'Executing publish_latest_revision action for @type %title', array('@type' => $type, '%title' => $node->title),
-           WATCHDOG_NOTICE, l(t('view'), "node/$node->nid"));
+  watchdog('revisioning',
+    'Executing publish_latest_revision action for @type %title', array('@type' => $type, '%title' => $node->title),
+    WATCHDOG_NOTICE, l(t('view'), "node/$node->nid"));
   revisioning_publish_latest_revision($node);
 }
