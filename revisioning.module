@@ -829,10 +829,21 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
     case 'view':
       if (user_access('view revisions') && (user_access('publish revisions') || user_access('administer nodes'))) {
         $order = variable_get('revisioning_block_order', OLDEST_AT_TOP) == OLDEST_AT_TOP ? 'ASC' : 'DESC';
-        $nodes = get_nodes('update', NO_FILTER, NO_FILTER, NO_FILTER, TRUE, "timestamp $order", 100, FALSE);
+        $nodes = get_nodes('update', NO_FILTER, NO_FILTER, NO_FILTER, TRUE, 100, FALSE, 'timestamp '. $order);
         if (!empty($nodes)) {
           return _theme_revisions_pending_block($nodes);
         }
       }
   }
 }
+
+/**
+ * Implementation of hook_views_api().
+ */
+function revisioning_views_api() {
+  return array(
+    'api' => views_api_version(),
+    'path' => drupal_get_path('module', 'revisioning')
+  );
+}
+
