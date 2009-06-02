@@ -113,13 +113,6 @@ function revisioning_menu() {
     'access arguments' => array('unpublish current revision', 1),
     'type' => MENU_CALLBACK,
   );
-  $items['admin/settings/revisioning'] = array(
-    'title' => 'Revisioning',
-    'description' =>  'Configure global revisioning options.',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('revisioning_admin_settings'),
-    'access arguments' => array('administer site configuration'),
-  );
   return $items;
 }
 
@@ -161,22 +154,17 @@ function revisioning_menu_alter(&$items) {
   // Remove "Edit" as a tab and redirect existing edit links to
   // _show_node_revisions() to ensure user picks desired revision first.
   $items['node/%node/edit']['page callback'] = '_show_node_revisions';
-//$items['node/%node/edit']['page arguments'] = array(1);
   $items['node/%node/edit']['type'] = MENU_CALLBACK;
 
   // "Revisions" tab remains but points to new page callback, which ensures users
   // pick the desired revision to view, edit, publish, revert, unpublish, delete.
   $items['node/%node/revisions']['page callback'] = '_show_node_revisions';
-//$items['node/%node/revisions']['page arguments'] = array(1);
 
-  // Point /%node/revisions/%/view page to same callback as /%node/view for a
-  // consistent view of current and other revisions
-//$items['node/%node/revisions/%/view']['page callback'] = 'node_page_view'; // as used by /%node/view
-//$items['node/%node/revisions/%/view']['page arguments'] = array(1);
-
-  // Override existing callback so that we can insert trigger pulled upon reverting
-  //$items['node/%node/revisions/%/revert']['page callback'] = 'drupal_get_form';
-  //$items['node/%node/revisions/%/revert']['page arguments'] = array('revisioning_revert_confirm', 1);
+  // Used to override 'node/%node/revisions/%/revert' with a callback to insert
+  // code to pull a trigger upon reverting.
+  // This is now done via hook_form_FORM_ID_alter(), i.e.
+  // revisioning_form_node_revision_revert_confirm_alter(), which upon
+  // confirmation forwards to revisioning_revert_confirm_submit().
 
   // If Diff module is enabled, make sure it uses correct access callback
   if (module_exists('diff')) {
@@ -208,12 +196,6 @@ function _show_pending_nodes($op = 'view', $user_filter = -1) {
  */
 function _show_node_revisions($node) {
   return _theme_revisions_summary($node);
-}
-
-/**
- * Menu callback for admin settings.
- */
-function revisioning_admin_settings() {
 }
 
 /**
@@ -463,12 +445,12 @@ function revisioning_unpublish_confirm_submit($form, &$form_state) {
 /**
  * Implementation of hook_form_FORM_ID_alter(), see node_revision_revert_confirm()
  */
-function revisioning_form_node_revision_revert_confirm_alter(&$form_state, &$form_state) {
+function revisioning_form_node_revision_revert_confirm_alter(&$form, &$form_state) {
   $node = $form['#node_revision'];
   if (_number_of_pending_revisions($node->nid) > 0) {
     drupal_set_message(t('There is a pending revision. Are you sure you want to revert to an archived revision?'), 'warning');
   }
-  $form['#submit'][] = 'revision_revert_confirm_submit';
+  $form['#submit'][] = 'revisioning_revert_confirm_submit';
 }
 
 /**
@@ -495,7 +477,6 @@ function revisioning_revert_confirm_submit($form, &$form_state) {
   // Invoke the revisioning trigger passing 'revert' as the operation
   module_invoke_all('revisioning', 'revert');
 }
-
 
 /**
  * Make the supplied revision of the node current and publish it.
