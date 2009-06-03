@@ -183,7 +183,8 @@ function theme_revisioning_revisions_summary($form) {
     $header[] = t('Term');
   }
   $header[] = t('Status');
-
+  
+  $is_initial_unpublished_draft = !$node->status && (count($revision_ids) == 1); 
   foreach ($revision_ids as $vid) {
     $row = array();
     // Revision info
@@ -198,13 +199,20 @@ function theme_revisioning_revisions_summary($form) {
     }
     // Publication status
     $is_current = ($vid == $node->vid);
-    $is_pending = ($vid > $node->vid);
-    if ($is_current) {
+    $is_pending = ($vid > $node->vid) || $is_initial_unpublished_draft;
+    if ($is_pending) {
+      $row[] = array('data' => t('in draft/pending moderation')); 
+    }
+    else {   
+      $row[] = array('data' => $is_current && $node->status ? theme('placeholder', t('current revision (published)')) : t('archived'));
+    }
+/*  if ($is_current) {
       $row[] = array('data' => theme('placeholder', $node->status ? t('current revision (published)') : t('current revision (unpublished)')));
     }
     else {
       $row[] = array('data' => $is_pending ? t('in draft/pending moderation') : t('archived')); 
     }
+*/
     $row_style = $is_current ? 'revision-current' : ($is_pending ? 'revision-pending' : NULL);
     if ($is_current && $node->status) {
       $row_style .= ' published';

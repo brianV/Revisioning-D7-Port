@@ -86,7 +86,7 @@ function revisioning_menu() {
   $items['node/%node/revisions/%/edit'] = array(
   //'title' => t('Edit revision'),
     'load arguments' => array(3),
-    'page callback' => 'revisioning_edit',
+    'page callback' => '_revisioning_edit',
     'page arguments' => array(1),
     'access callback' => 'module_grants_node_revision_access',
     'access arguments' => array('edit revisions', 1),
@@ -206,7 +206,9 @@ function _show_node_revisions($node) {
 function revisioning_form_alter(&$form, &$form_state, $form_id) {
   // Note that $form_id = <content_type>_$form['#id']
   if (isset($form['#id']) && $form['#id'] == 'node-form') {
-    $form['options']['#collapsed'] = FALSE;
+  	$form['options']['#collapsed'] = FALSE;
+  	$nid = $form['nid']['#value'];
+  	$form['#redirect'] = "/node/$nid/revisions";
 
     $default_value = in_array('revision_moderation', variable_get("node_options_{$form['type']['#value']}", array('status', 'promote')));
     // Only show this option if user has the 'administer nodes' permission
@@ -257,7 +259,7 @@ function revisioning_form_node_type_form_alter(&$form, &$form_state) {
   $form['workflow']['revisioning']['revisioning_auto_publish'] = array(
     '#title' => t('Auto-publish drafts of type %type (for moderators)', array('%type' => $content_type)),
     '#type' => 'checkbox',
-    '#default_value' => (int)variable_get('revisioning_auto_publish_'. $content_type, 1),
+    '#default_value' => (int)variable_get('revisioning_auto_publish_'. $content_type, FALSE),
     '#description' => t('If this box is ticked and the logged-in user has the "publish revisions" permission, then any draft of type %type is published immeditaley upon saving, without further review.', array('%type' => $content_type))
   );
 }
@@ -341,7 +343,7 @@ function _handle_edit(&$node, $op) {
       case 'presave': // called from start of node_save()
         $node->original_revision = $node->revision;
         if ($node->revision && variable_get('new_revisions_'. $node->type, NEW_REVISION_WHEN_NOT_PENDING) == NEW_REVISION_WHEN_NOT_PENDING) {
-          if (_is_pending($node)) {
+          if (is_pending($node)) {
             // Not creating new revision as this revision is still pending
             $node->revision = FALSE;
           }
@@ -373,14 +375,15 @@ function _handle_edit(&$node, $op) {
 /**
  * Menu callback; edit revision.
  */
-function revisioning_edit($node) {
+function _revisioning_edit($node) {
   // Use the admin theme if the user specified this for node edit pages
   if (variable_get('node_admin_theme', FALSE)) {
     global $theme, $custom_theme;
     $custom_theme = variable_get('admin_theme', $theme);
   }
   drupal_set_title(check_plain($node->title));
-  return drupal_get_form($node->type .'_node_form', $node);
+  $form = drupal_get_form($node->type .'_node_form', $node);
+  return $form;
 }
 
 /**
@@ -617,25 +620,24 @@ function _get_all_revisions_for_node($nid, $include_taxonomy_terms = FALSE) {
  *   A translatable message containing details about the node
  */
 function _get_node_info_msg($node) {
-  // Get username for the revision rather than the original node.
+  // Get username for the revision, not the creator of the node
   $revision_author = user_load($node->revision_uid);
-  $published = $node->status ? t('current, published') : t('current, unpublished');
   $placeholder_data =
-    array('%current' => $published,
-          '%title' => check_plain($node->title),
+    array('%title' => check_plain($node->title),
           '!author' => theme('username', $revision_author),
           '@date' => format_date($node->revision_timestamp, 'small'));
-  $current_revision_id = _get_current_revision_id($node->nid);
-  // $message coded with some duplication to improve translatability
-  if ($node->vid == $current_revision_id) {
-    $message = t('Displaying %current revision of %title, last modified by !author on @date', $placeholder_data);
-  }
+        
+  $current_vid = _get_current_revision_id($node->nid);
+  $is_pending = ($node->vid > $current_vid) || (!$node->status && get_number_of_revisions($node->nid) == 1); 
+  if ($is_pending) {
+  	$msg = t('Displaying <em>pending</em> revision of %title, last modified by !author on @date', $placeholder_data);
+  } 
   else {
-    $message = ($node->vid > $current_revision_id)
-      ? t('Displaying pending revision of %title, last modified by !author on @date', $placeholder_data)
-      : t('Displaying archived revision of %title, last modified by !author on @date', $placeholder_data);
+  	$msg = ($current_vid == $node->vid) && $node->status
+  	  ? t('Displaying <em>current, published</em> revision of %title, last modified by !author on @date', $placeholder_data)
+      : t('Displaying <em>archived</em> revision of %title, last modified by !author on @date', $placeholder_data);
   }
-  return $message;
+  return $msg;
 }
 
 /**
@@ -736,6 +738,17 @@ function _get_current_revision_id($nid) {
 }
 
 /**
+ * Get the number of revisions belonging to a node.
+ * @param 
+ *  $nid, id of the node
+ * @return
+ *  A count representing the number of revisions associated with the node
+ */
+function get_number_of_revisions($nid) {
+  return db_result(db_query("SELECT COUNT(vid) FROM {node_revisions} WHERE nid=%d", $nid));
+}
+
+/**
  * Return whether the node has a pending revision, that is a revision newer
  * than the current OR when there's only one revision, whether that revision is
  * unpublished.
@@ -743,10 +756,9 @@ function _get_current_revision_id($nid) {
  * @param $node
  * @return TRUE, if the node has a pending revision.
  */
-function _is_pending($node) {
-  return
-    ($node->vid > _get_current_revision_id($node->nid)) ||
-    (!$node->status && db_result(db_query("SELECT COUNT(vid) FROM {node_revisions} WHERE nid=%d", $node->nid)) == 1);
+function is_pending($node) {
+  return ($node->vid > _get_current_revision_id($node->nid)) ||
+    (!$node->status && get_number_of_revisions($node->nid) == 1) ;
 }
 
 /**
@@ -846,4 +858,3 @@ function revisioning_views_api() {
     'path' => drupal_get_path('module', 'revisioning')
   );
 }
-
