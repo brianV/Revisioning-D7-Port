@@ -201,18 +201,12 @@ function theme_revisioning_revisions_summary($form) {
     $is_current = ($vid == $node->vid);
     $is_pending = ($vid > $node->vid) || $is_initial_unpublished_draft;
     if ($is_pending) {
-      $row[] = array('data' => t('in draft/pending moderation')); 
+      $row[] = array('data' => t('in draft/pending mod.')); 
     }
     else {   
       $row[] = array('data' => $is_current && $node->status ? theme('placeholder', t('current revision (published)')) : t('archived'));
     }
-/*  if ($is_current) {
-      $row[] = array('data' => theme('placeholder', $node->status ? t('current revision (published)') : t('current revision (unpublished)')));
-    }
-    else {
-      $row[] = array('data' => $is_pending ? t('in draft/pending moderation') : t('archived')); 
-    }
-*/
+    // Apply css
     $row_style = $is_current ? 'revision-current' : ($is_pending ? 'revision-pending' : NULL);
     if ($is_current && $node->status) {
       $row_style .= ' published';
