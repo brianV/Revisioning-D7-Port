@@ -162,12 +162,6 @@ function revisioning_menu_alter(&$items) {
   // pick the desired revision to view, edit, publish, revert, unpublish, delete.
   $items['node/%node/revisions']['page callback'] = '_show_node_revisions';
 
-  // Used to override 'node/%node/revisions/%/revert' with a callback to insert
-  // code to pull a trigger upon reverting.
-  // This is now done via hook_form_FORM_ID_alter(), i.e.
-  // revisioning_form_node_revision_revert_confirm_alter(), which upon
-  // confirmation forwards to revisioning_revert_confirm_submit().
-
   // If Diff module is enabled, make sure it uses correct access callback
   if (module_exists('diff')) {
     $items['node/%node/revisions/view/%/%']['access callback'] = 'module_grants_node_revision_access';
@@ -464,7 +458,7 @@ function revisioning_unpublish_confirm_submit($form, &$form_state) {
 }
 
 /**
- * Implementation of hook_form_FORM_ID_alter(), see node_revision_revert_confirm()
+ * Implementation of hook_form_FORM_ID_alter(), see node.pages.inc/node_revision_revert_confirm()
  */
 function revisioning_form_node_revision_revert_confirm_alter(&$form, &$form_state) {
   $node = $form['#node_revision'];
@@ -497,6 +491,13 @@ function revisioning_revert_confirm_submit($form, &$form_state) {
   cache_clear_all();
   // Invoke the revisioning trigger passing 'revert' as the operation
   module_invoke_all('revisioning', 'revert');
+}
+
+/**
+ * Implementation of hook_form_FORM_ID_alter(), see node.pages.inc/node_delete_confirm()
+ */
+function revisioning_form_node_delete_confirm_alter(&$form, &$form_state) {
+  $form['#redirect'] = 'accessible-content';
 }
 
 /**
@@ -672,7 +673,8 @@ function generate_node_links_according_to_permissions($node) {
     $links[] = l(t('Unpublish current revision'), "node/$node->nid/unpublish");
   }
   if ($access_delete) {
-    $links[] = l(t('Delete all revisions'), "node/$node->nid/delete");
+  //$options = array('query' => "destination=node/$node->nid/revisions");
+    $links[] = l(t('Delete all revisions'), "node/$node->nid/delete");;
   }
   return $links;
 }
