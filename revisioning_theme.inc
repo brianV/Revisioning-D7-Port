@@ -201,7 +201,7 @@ function theme_revisioning_revisions_summary($form) {
     $is_current = ($vid == $node->vid);
     $is_pending = ($vid > $node->vid) || $is_initial_unpublished_draft;
     if ($is_pending) {
-      $row[] = array('data' => t('in draft/pending mod.')); 
+      $row[] = array('data' => t('in draft/pending publication')); 
     }
     else {   
       $row[] = array('data' => $is_current && $node->status ? theme('placeholder', t('current revision (published)')) : t('archived'));
