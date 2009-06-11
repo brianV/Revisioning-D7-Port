@@ -70,10 +70,6 @@ function revisioning_revisions_summary($form_state, $nid) {
   $show_taxonomy_terms = module_exists('taxonomy');
   $revisions = _get_all_revisions_for_node($nid, $show_taxonomy_terms);
 
-  drupal_set_message(format_plural(count($revisions),
-    'This content has only one revision', 
-    'This content has @count revisions.'));
-
   $revision_ids = array();
   foreach ($revisions as $revision) {
     $vid = $revision->vid;
@@ -87,11 +83,16 @@ function revisioning_revisions_summary($form_state, $nid) {
       . (empty($revision->log) ? '' : '<p class="revision-log">'. filter_xss($revision->log) .'</p>');
     $form['info'][$vid] = array('#value' => $first_cell);
     
-    // Third column: term
+    // Third column: term (2nd column is handled below)
     if ($show_taxonomy_terms) {
       $form['term'][$vid] = array('#value' => $revision->term);
     }
   }
+  drupal_set_message(format_plural(count($revisions),
+    'This @content_type has only one revision', 
+    'This @content_type has @count revisions.', 
+    array('@content_type' => $revision->type)));
+  
   if (count($revisions) >= 2 && module_exists('diff')) {
     // Second column: check-boxes to select two revisions to compare
     $id1 = key($revision_ids);
@@ -203,7 +204,7 @@ function theme_revisioning_revisions_summary($form) {
     if ($is_pending) {
       $row[] = array('data' => t('in draft/pending publication')); 
     }
-    else {   
+    else {
       $row[] = array('data' => $is_current && $node->status ? theme('placeholder', t('current revision (published)')) : t('archived'));
     }
     // Apply css

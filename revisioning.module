@@ -191,8 +191,8 @@ function revisioning_menu_alter(&$items) {
 function _show_pending_nodes($op = 'view', $user_filter = -1) {
   global $user;
   $moderated_only = user_access('administer nodes') ? -1 : TRUE;
-  $nodes = get_nodes($op, -1, 
-    $user_filter == I_CREATED ? $user->uid : -1, 
+  $nodes = get_nodes($op, -1,
+    $user_filter == I_CREATED ? $user->uid : -1,
     $user_filter == I_LAST_MODIFIED ? $user->uid : -1,
     $moderated_only, TRUE);
   return theme('nodes_summary', $nodes);
@@ -306,7 +306,7 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
     // Only interested in URIs starting with /node or /user/<uid>/edit/<content_type>
     return;
   }
-  
+
   if ($args[1] == 'add') {
     // /node/add/<content_type>; there is no 'add' for user profiles, only 'edit'
     _handle_new($node, $op); // 'presave', 'insert'
@@ -655,7 +655,7 @@ function _get_pending_revisions($nid) {
  *  title, timestamp and name of user that created the revision
  */
 function _get_all_revisions_for_node($nid, $include_taxonomy_terms = FALSE) {
-  $sql_select = 'SELECT n.status, r.vid, r.title, r.log, r.uid, r.timestamp, u.name';
+  $sql_select = 'SELECT n.type, n.status, r.vid, r.title, r.log, r.uid, r.timestamp, u.name';
   $sql_from   = ' FROM {node_revisions} r LEFT JOIN {node} n ON n.vid=r.vid INNER JOIN {users} u ON u.uid=r.uid';
   $sql_where  = ' WHERE r.nid=%d ORDER BY r.vid DESC';
   if ($include_taxonomy_terms) {
@@ -715,10 +715,8 @@ function _get_node_info_msg($node) {
  * Return an array of hyperlinks representing the operations the logged-in user
  * is allowed to perform on the supplied node.
  *
- * @param 
- *  $node
- * @return 
- *  array of hyperlinks
+ * @param $node
+ * @return array of hyperlinks
  */
 function generate_node_links_according_to_permissions($node) {
   $links = array();
@@ -735,10 +733,8 @@ function generate_node_links_according_to_permissions($node) {
  * Return an array of hyperlinks representing the operations the logged-in user
  * is allowed to perform on the supplied revision.
  *
- * @param 
- *  $node
- * @return
- *  array of hyperlinks
+ * @param $node
+ * @return array of hyperlinks
  */
 function generate_revision_links_according_to_permissions($node) {
   $access_view      = module_grants_node_revision_access('view revisions', $node);
@@ -813,9 +809,8 @@ function _get_current_revision_id($nid) {
  * than the current OR when there's only one revision, whether that revision is
  * unpublished.
  *
- * @param 
- *  $node
- * @return 
+ * @param $node
+ * @return
  *  TRUE, if the node has a pending revision.
  */
 function _is_pending($node) {
