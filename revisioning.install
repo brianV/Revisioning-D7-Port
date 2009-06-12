@@ -18,4 +18,5 @@ function revisioning_install() {
 function revisioning_uninstall() {
   variable_del('revisioning_block_num_pending');
   variable_del('revisioning_block_order');
+//@todo variable_del() content type dependent vars's
 }

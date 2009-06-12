@@ -83,7 +83,40 @@ function revisioning_menu() {
     'type' => MENU_LOCAL_TASK,
     'weight' => -1
   );
-
+/*
+  // 'Moderated' and sub tabs
+  $items['accessible-content/moderated'] = array(
+    'title' => 'I can moderate',
+    'page callback' => '_show_pending_nodes',
+    'page arguments' => array('update'),
+    'access arguments' => array('access content summary'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 12
+  );
+  $items['accessible-content/moderated/pending'] = array(
+    'title' => 'In draft/Pending publication',
+    'page callback' => 'show_pending_nodes',
+    'page arguments' => array('update'),
+    'access arguments' => array('access content summary'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -1
+  );
+  $items['accessible-content/moderated/published'] = array(
+    'title' => 'Published',
+    'page callback' => 'show_accessible_content_summary',
+    'page arguments' => array('update', '1', NO_FILTER, TRUE),
+    'access arguments' => array('access content summary'),
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['accessible-content/moderated/not-published'] = array(
+    'title' => 'Not published',
+    'page callback' => 'show_accessible_content_summary',
+    'page arguments' => array('update', '0', NO_FILTER, TRUE),
+    'access arguments' => array('access content summary'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 1
+  );
+ */
   // Callback (not a menu item) to allow users to edit specified revision
   $items['node/%node/revisions/%/edit'] = array(
   //'title' => t('Edit revision'),
@@ -245,8 +278,8 @@ function revisioning_form_alter(&$form, &$form_state, $form_id) {
       // Delete button needs special treatment
       if (isset($form['buttons']['delete'])) {
         $form['buttons']['delete']['#submit'] = array('_revision_delete_submit');
-        if (_get_number_of_revisions($nid) > 1) {
-          if (!user_access("delete revisions") || $form['#node']->vid == _get_current_revision_id($nid)) {
+        if (get_number_of_revisions($nid) > 1) {
+          if (!user_access("delete revisions") || $form['#node']->vid == get_current_revision_id($nid)) {
             // Disallow deletion of current revision as BAD things will happen if you do!
             unset($form['buttons']['delete']);
           }
@@ -394,7 +427,7 @@ function _handle_edit(&$node, $op) {
         }
         else {
           // Save the vid for subsequent restore during 'update' op
-          $node->original_vid = _get_current_revision_id($node->nid);
+          $node->original_vid = get_current_revision_id($node->nid);
         }
         break;
 
@@ -528,7 +561,7 @@ function revisioning_revert_confirm_submit($form, &$form_state) {
  */
 function _revision_delete_submit(&$form, &$form_state) {
   $node = $form['#node'];
-  $form['#redirect'] =  (_get_number_of_revisions($node->nid) == 1)
+  $form['#redirect'] =  (get_number_of_revisions($node->nid) == 1)
     ? "node/$node->nid/delete" // delete entire node
     : "node/$node->nid/revisions/$node->vid/delete";
 }
@@ -538,7 +571,9 @@ function _revision_delete_submit(&$form, &$form_state) {
  * This is called when the 'Delete all revisions' link is pressed
  */
 function revisioning_form_node_delete_confirm_alter(&$form, &$form_state) {
-  $form['#redirect'] = 'accessible-content';
+  if (user_access('access content summary')) {
+    $form['#redirect'] = 'accessible-content';
+  }
 }
 
 /**
@@ -574,7 +609,7 @@ function revisioning_publish_latest_revision($node) {
   // Get latest pending revision or take the current provided it's UNpublished
   $latest_pending = array_shift(_get_pending_revisions($node->nid));
   if (!$latest_pending) {
-    if (!$node->status && $node->vid == _get_current_revision_id($node->nid)) {
+    if (!$node->status && $node->vid == get_current_revision_id($node->nid)) {
       $latest_pending = $node;
     }
   }
@@ -584,17 +619,6 @@ function revisioning_publish_latest_revision($node) {
   else {
     drupal_set_message(t('"!title" has no pending revision to be published.', array('!title' => $node->title)), 'warning');
   }
-}
-
-/**
- * Get the number of revisions belonging to a node.
- * @param
- *  $nid, id of the node
- * @return
- *  A count representing the number of revisions associated with the node
- */
-function _get_number_of_revisions($nid) {
-  return db_result(db_query("SELECT COUNT(vid) FROM {node_revisions} WHERE nid=%d", $nid));
 }
 
 /**
@@ -698,8 +722,8 @@ function _get_node_info_msg($node) {
           '%title' => check_plain($node->title),
           '!author' => theme('username', $revision_author),
           '@date' => format_date($node->revision_timestamp, 'small'));
-  $current_vid = _get_current_revision_id($node->nid);
-  $is_pending = ($node->vid > $current_vid) || (!$node->status && _get_number_of_revisions($node->nid) == 1);
+  $current_vid = get_current_revision_id($node->nid);
+  $is_pending = ($node->vid > $current_vid) || (!$node->status && get_number_of_revisions($node->nid) == 1);
   if ($is_pending) {
     $msg = t('Displaying <em>pending</em> revision of @content_type %title, last modified by !author on @date', $placeholder_data);
   }
@@ -719,12 +743,17 @@ function _get_node_info_msg($node) {
  * @return array of hyperlinks
  */
 function generate_node_links_according_to_permissions($node) {
+  $nid = $node->nid;
+  $num_revisions = get_number_of_revisions($nid);
+  if ($num_revisions == 1) {
+    return generate_revision_links_according_to_permissions($node);
+  }
   $links = array();
   if ($node->status && module_grants_node_revision_access('unpublish current revision', $node)) {
-    $links[] = l(t('Unpublish current revision'), "node/$node->nid/unpublish");
+    $links[] = l(t('Unpublish current revision'), "node/$nid/unpublish");
   }
   if (module_grants_node_access('delete', $node)) {
-    $links[] = l(t('Delete all revisions'), "node/$node->nid/delete");;
+    $links[] = l(format_plural($num_revisions, 'Delete', 'Delete all @count revisions'), "node/$nid/delete");
   }
   return $links;
 }
@@ -737,6 +766,12 @@ function generate_node_links_according_to_permissions($node) {
  * @return array of hyperlinks
  */
 function generate_revision_links_according_to_permissions($node) {
+  $nid = $node->nid;
+  $current_revision_id = get_current_revision_id($nid);
+  $is_current = ($node->vid == $current_revision_id);
+  $is_pending = ($node->vid > $current_revision_id);
+  $num_revisions = get_number_of_revisions($nid);
+
   $access_view      = module_grants_node_revision_access('view revisions', $node);
   $access_edit      = module_grants_node_revision_access('edit revisions', $node);
   $access_delete    = module_grants_node_revision_access('delete revisions', $node);
@@ -744,15 +779,11 @@ function generate_revision_links_according_to_permissions($node) {
   $access_revert    = module_grants_node_revision_access('revert revisions', $node);
   $access_unpublish = module_grants_node_revision_access('unpublish current revision', $node);
 
-  $current_revision_id = _get_current_revision_id($node->nid);
-  $is_current = ($node->vid == $current_revision_id);
-  $is_pending = ($node->vid > $current_revision_id);
-
   $links = array(); // Links to compare/revert/publish/delete revisions
   if ($access_view) {
     // Add a link to the diff if we have Diff module installed.
     if (!$is_current && module_exists('diff')) {
-      $comparison_url = "node/$node->nid/revisions/view/";
+      $comparison_url = "node/$nid/revisions/view/";
       // Make sure that latest of the two revisions is on the right
       if ($is_pending) {
         $comparison_url .= "$current_revision_id/$node->vid";
@@ -765,43 +796,31 @@ function generate_revision_links_according_to_permissions($node) {
   }
   $base_url = "node/$node->nid/revisions/$node->vid";
   if ($access_edit) {
-    $links[] = l(t('Edit this revision'), "$base_url/edit");
+    $links[] = l(t($num_revisions == 1 ? 'Edit' : 'Edit this revision'), "$base_url/edit");
   }
   // If this revision is pending or current but not published, return a
   // publish link, otherwise show a revert link.
   if ($access_publish && ($is_pending || ($is_current && !$node->status))) {
-    $links[] = l(t('Publish this revision'), "$base_url/publish");
+    $links[] = l(t($num_revisions == 1 ? 'Publish' : 'Publish this revision'), "$base_url/publish");
   }
   elseif ($access_revert && !$is_pending && !$is_current) {
     $links[] = l(t('Revert to this revision'), "$base_url/revert");
   }
   if ($access_unpublish && $is_current && $node->status) {
-    $links[] = l(t('Unpublish this revision'), "node/$node->nid/unpublish");
+    $links[] = l(t($num_revisions == 1 ? 'Unpublish' :'Unpublish this revision'), "node/$node->nid/unpublish");
   }
-  if ($access_delete && !$is_current) {
-    // Don't provide link to delete current -- node must point to a revision.
-    $links[] = l(t('Delete this revision'), "$base_url/delete");
+  if ($access_delete) {
+    // Make sure to disallow deletion of current revision, unless it's the only
+    // revision, in which case show link to delete node.
+    if (!$is_current || $num_revisions <= 1) {
+      $links[] = l(t($num_revisions <= 1 ? 'Delete' : 'Delete this revision'), $num_revisions <= 1 ? "node/$nid/delete" : "$base_url/delete");
+    }
   }
   $args = arg();
-  if ($access_view && $args[2] == 'revisions') {
-    // Don't provide link to 'Show all revisions' when Revisions tab is available
+  if ($access_view && end($args) == 'view') {
     $links[] = l(t('Show all revisions'), "node/$node->nid/revisions");
   }
   return $links;
-}
-
-/**
- * Get the id of the current revision that the supplied node is pointing to.
- * Used in cases where the node object wasn't fully loaded or was loaded
- * with a different revision.
- *
- * @param $nid
- *  The id of the node whose current revision id is to be returned.
- * @return
- *  A single number being the current revision id (vid).
- */
-function _get_current_revision_id($nid) {
-  return db_result(db_query('SELECT vid FROM {node} WHERE nid=%d', $nid));
 }
 
 /**
@@ -814,8 +833,8 @@ function _get_current_revision_id($nid) {
  *  TRUE, if the node has a pending revision.
  */
 function _is_pending($node) {
-  return ($node->vid > _get_current_revision_id($node->nid)) ||
-    (!$node->status && _get_number_of_revisions($node->nid) == 1) ;
+  return ($node->vid > get_current_revision_id($node->nid)) ||
+    (!$node->status && get_number_of_revisions($node->nid) == 1) ;
 }
 
 /**
