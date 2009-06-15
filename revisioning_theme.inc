@@ -238,15 +238,26 @@ function theme_table_revisions($header, $rows) {
  */
 
 /**
- * Implementation of <mymodule>_preprocess_hook().
+ * Implementation of <module>_preprocess_hook().
+ *
+ * Gets called before the page is rendered via page.tpl.php. This gives us the
+ * opportunity to insert and manipulate items on the page (via $variablies).
+ * Only works when the theme is rendered through an ENGINE.
+ *
+ * @param $variables
+ * @return void
+ */
+function revisioning_preprocess_page(&$variables) {
+}
+
+/**
+ * Implementation of <module>_preprocess_hook().
+ * 
  * Gets called after the node has been fleshed out, but before it is rendered
- * (via node.tpl.php). This gives us the opportunity to insert on the page some 
- * hyperlinks that operate on the content shown, provided the theme is rendered
- * through an ENGINE -- Chameleon, for instance, is NOT, see
- * _theme_content_menu().
- * Earlier versions did this by (ab)using drupal_set_message($submenu_links).
- * Here we prepend the links, themed as a 'revision', to the content. 
- * This ensures the links are visible in all existing templates.
+ * via node.tpl.php. This gives us the opportunity to prepend to the content
+ * some hyperlinks.
+ * Only works when the theme is rendered through an ENGINE. Chameleon, for 
+ * instance, is NOT and is handled by _theme_content_menu().
  * 
  * Uses the following subthemes:
  * o revision.tpl.php

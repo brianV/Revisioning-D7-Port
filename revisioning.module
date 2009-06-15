@@ -7,6 +7,7 @@
  * content while the current revision remains unchanged and publicly visible
  * until the changes have been reviewed by a moderator.
  */
+require_once drupal_get_path('module', 'node') .'/node.pages.inc';
 require_once drupal_get_path('module', 'revisioning') .'/revisioning_theme.inc';
 require_once drupal_get_path('module', 'revisioning') .'/revisioning_triggers_actions.inc';
 
@@ -187,14 +188,16 @@ function revisioning_menu_alter(&$items) {
   $items['node/%node/view']['title'] = 'View current';
 
   // Remove "Edit" as a tab and redirect existing edit links to
-  // _show_node_revisions() to ensure user picks desired revision first.
-  $items['node/%node/edit']['page callback'] = '_show_node_revisions';
+  // _present_node() to ensure user picks desired revision first.
+  $items['node/%node/edit']['page callback'] = '_present_node';
+  $items['node/%node/edit']['page arguments'] = array(1, 'edit');
   $items['node/%node/edit']['type'] = MENU_CALLBACK;
 
   // "Revisions" tab remains but points to new page callback, which ensures users
   // pick the desired revision to view, edit, publish, revert, unpublish, delete.
-  $items['node/%node/revisions']['page callback'] = '_show_node_revisions';
-
+  $items['node/%node/revisions']['page callback'] = '_present_node';
+  $items['node/%node/revisions']['page arguments'] = array(1);
+  
   // If Diff module is enabled, make sure it uses correct access callback
   if (module_exists('diff')) {
     $items['node/%node/revisions/view/%/%']['access callback'] = 'module_grants_node_revision_access';
@@ -235,8 +238,10 @@ function _show_pending_nodes($op = 'view', $user_filter = -1) {
  * Display all revisions of the supplied node in a themed table with
  * links for the permitted operations above it.
  */
-function _show_node_revisions($node) {
-  return _theme_revisions_summary($node);
+function _present_node($node, $op = 'view') {
+  return ($op  == 'edit' && !is_moderated($node->type)) 
+    ? node_page_edit($node)
+    :_theme_revisions_summary($node);
 }
 
 /**
@@ -272,14 +277,14 @@ function revisioning_form_alter(&$form, &$form_state, $form_id) {
 
     $nid = $form['#node']->nid;
     if (!(empty($nid))) {
-      // After saving an edit, redirect to revisions summary
-      $form['#redirect'] = "/node/$nid/revisions";
+      // After saving an edit, redirect to revisions summary, if permitted.
+      $form['#redirect'] = user_access('view revisions') ? "/node/$nid/revisions" : "/node/$nid";
 
       // Delete button needs special treatment
       if (isset($form['buttons']['delete'])) {
         $form['buttons']['delete']['#submit'] = array('_revision_delete_submit');
         if (get_number_of_revisions($nid) > 1) {
-          if (!user_access("delete revisions") || $form['#node']->vid == get_current_revision_id($nid)) {
+          if (!user_access('delete revisions') || $form['#node']->vid == get_current_revision_id($nid)) {
             // Disallow deletion of current revision as BAD things will happen if you do!
             unset($form['buttons']['delete']);
           }
@@ -440,7 +445,7 @@ function _handle_edit(&$node, $op) {
         break;
     }
   }
-  elseif ($op == 'update') {
+  elseif ($op == 'update' && $node->status) {
     drupal_set_message(t('Your changes are now current as moderation is switched off for this content type.'), 'warning');
   }
 }
@@ -817,7 +822,7 @@ function generate_revision_links_according_to_permissions($node) {
     }
   }
   $args = arg();
-  if ($access_view && end($args) == 'view') {
+  if ($access_view && $args[4] == 'view') {
     $links[] = l(t('Show all revisions'), "node/$node->nid/revisions");
   }
   return $links;
