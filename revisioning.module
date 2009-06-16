@@ -238,7 +238,7 @@ function _show_pending_nodes($op = 'view', $user_filter = -1) {
  * Display all revisions of the supplied node in a themed table with
  * links for the permitted operations above it.
  */
-function _present_node($node, $op = 'view') {
+function _present_node($node, $op = 'any') {
   return ($op  == 'edit' && !is_moderated($node->type)) 
     ? node_page_edit($node)
     :_theme_revisions_summary($node);
@@ -801,24 +801,24 @@ function generate_revision_links_according_to_permissions($node) {
   }
   $base_url = "node/$node->nid/revisions/$node->vid";
   if ($access_edit) {
-    $links[] = l(t($num_revisions == 1 ? 'Edit' : 'Edit this revision'), "$base_url/edit");
+    $links[] = l($num_revisions == 1 ? t('Edit') : t('Edit this revision'), "$base_url/edit");
   }
   // If this revision is pending or current but not published, return a
   // publish link, otherwise show a revert link.
   if ($access_publish && ($is_pending || ($is_current && !$node->status))) {
-    $links[] = l(t($num_revisions == 1 ? 'Publish' : 'Publish this revision'), "$base_url/publish");
+    $links[] = l($num_revisions == 1 ? t('Publish') : t('Publish this revision'), "$base_url/publish");
   }
   elseif ($access_revert && !$is_pending && !$is_current) {
     $links[] = l(t('Revert to this revision'), "$base_url/revert");
   }
   if ($access_unpublish && $is_current && $node->status) {
-    $links[] = l(t($num_revisions == 1 ? 'Unpublish' :'Unpublish this revision'), "node/$node->nid/unpublish");
+    $links[] = l($num_revisions == 1 ? t('Unpublish') : t('Unpublish this revision'), "node/$node->nid/unpublish");
   }
   if ($access_delete) {
     // Make sure to disallow deletion of current revision, unless it's the only
     // revision, in which case show link to delete node.
     if (!$is_current || $num_revisions <= 1) {
-      $links[] = l(t($num_revisions <= 1 ? 'Delete' : 'Delete this revision'), $num_revisions <= 1 ? "node/$nid/delete" : "$base_url/delete");
+      $links[] = l($num_revisions <= 1 ? t('Delete') : t('Delete this revision'), $num_revisions <= 1 ? "node/$nid/delete" : "$base_url/delete");
     }
   }
   $args = arg();
@@ -920,7 +920,7 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
       break;
 
     case 'view':
-      if (user_access('view revisions') && (user_access('publish revisions') || user_access('administer nodes'))) {
+      if (user_access('view revisions')) {
         $order = variable_get('revisioning_block_order', OLDEST_AT_TOP) == OLDEST_AT_TOP ? 'ASC' : 'DESC';
         $nodes = get_nodes('update', NO_FILTER, NO_FILTER, NO_FILTER, TRUE, TRUE, 100, FALSE, 'timestamp '. $order);
         if (!empty($nodes)) {
