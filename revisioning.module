@@ -745,22 +745,34 @@ function _get_node_info_msg($node) {
  * is allowed to perform on the supplied node.
  *
  * @param $node
- * @return array of hyperlinks
+ * @param $link_type
+ *   The type of link, e.g. MENU_IS_LOCAL_TASK, may affect the rendering via
+ *   theme('menu_item_link'), if overridden (eg zen_theme_menu_item_link()).
+ * @return array of themed hyperlinks
  */
-function generate_node_links_according_to_permissions($node) {
+function generate_node_links_according_to_permissions($node, $link_type = 0) {
   $nid = $node->nid;
   $num_revisions = get_number_of_revisions($nid);
   if ($num_revisions == 1) {
-    return generate_revision_links_according_to_permissions($node);
+    return generate_revision_links_according_to_permissions($node, $link_type);
   }
   $links = array();
   if ($node->status && module_grants_node_revision_access('unpublish current revision', $node)) {
-    $links[] = l(t('Unpublish current revision'), "node/$nid/unpublish");
+    $link['title'] = t('Unpublish current revision');
+    $link['href'] = "node/$nid/unpublish";
+    $links[] = $link;
   }
   if (module_grants_node_access('delete', $node)) {
-    $links[] = l(format_plural($num_revisions, 'Delete', 'Delete all @count revisions'), "node/$nid/delete");
+    $link['title'] = $num_revisions == 2 ? t('Delete both revisions') : format_plural($num_revisions, 'Delete', 'Delete all @count revisions');
+    $link['href'] = "node/$nid/delete";
+    $links[] = $link;
   }
-  return $links;
+  $themed_links = array();
+  foreach ($links as $link) {
+    $link['type'] = $link_type;
+    $themed_links[] = theme('menu_item_link', $link);
+  }
+  return $themed_links;
 }
 
 /**
@@ -768,9 +780,12 @@ function generate_node_links_according_to_permissions($node) {
  * is allowed to perform on the supplied revision.
  *
  * @param $node
- * @return array of hyperlinks
+ * @param $link_type
+ *   The type of link, e.g. MENU_IS_LOCAL_TASK, may affect the rendering via
+ *   theme('menu_item_link'), if overridden (eg zen_theme_menu_item_link()).
+ * @return array of themed hyperlinks
  */
-function generate_revision_links_according_to_permissions($node) {
+function generate_revision_links_according_to_permissions($node, $link_type = 0) {
   $nid = $node->nid;
   $current_revision_id = get_current_revision_id($nid);
   $is_current = ($node->vid == $current_revision_id);
@@ -796,36 +811,61 @@ function generate_revision_links_according_to_permissions($node) {
       else {
         $comparison_url .= "$node->vid/$current_revision_id";
       }
-      $links[] = l(t('Compare to current'), $comparison_url);
+      $link['title'] = t('Compare to current');
+      $link['href'] = $comparison_url;
+      $links[] = $link;
     }
   }
   $base_url = "node/$node->nid/revisions/$node->vid";
   if ($access_edit) {
-    $links[] = l($num_revisions == 1 ? t('Edit') : t('Edit this revision'), "$base_url/edit");
+    $link['title'] = $num_revisions == 1 ? t('Edit') : t('Edit this revision');
+    $link['href'] =  "$base_url/edit";
+    $links[] = $link;
   }
   // If this revision is pending or current but not published, return a
   // publish link, otherwise show a revert link.
   if ($access_publish && ($is_pending || ($is_current && !$node->status))) {
-    $links[] = l($num_revisions == 1 ? t('Publish') : t('Publish this revision'), "$base_url/publish");
+    $link['title'] = $num_revisions == 1 ? t('Publish') : t('Publish this revision');
+    $link['href'] = "$base_url/publish";
+    $links[] = $link;
   }
   elseif ($access_revert && !$is_pending && !$is_current) {
-    $links[] = l(t('Revert to this revision'), "$base_url/revert");
+    $link['title'] = t('Revert to this revision');
+    $link['href'] = "$base_url/revert";
+    $links[] = $link;
   }
   if ($access_unpublish && $is_current && $node->status) {
-    $links[] = l($num_revisions == 1 ? t('Unpublish') : t('Unpublish this revision'), "node/$node->nid/unpublish");
+    $link['title'] = $num_revisions == 1 ? t('Unpublish') : t('Unpublish this revision');
+    $link['href'] = "node/$node->nid/unpublish";
+    $links[] = $link;
   }
   if ($access_delete) {
     // Make sure to disallow deletion of current revision, unless it's the only
     // revision, in which case show link to delete node.
     if (!$is_current || $num_revisions <= 1) {
-      $links[] = l($num_revisions <= 1 ? t('Delete') : t('Delete this revision'), $num_revisions <= 1 ? "node/$nid/delete" : "$base_url/delete");
+      $link['title'] = $num_revisions <= 1 ? t('Delete') : t('Delete this revision');
+      $link['href'] = $num_revisions <= 1 ? "node/$nid/delete" : "$base_url/delete";
+      $links[] = $link;
+    }
+    elseif (!user_access('view revisions')) {
+      // User can't see revisions, but must have means to delete entire node
+      $link['title'] = $num_revisions == 2 ? t('Delete both revisions') : t('Delete all @count revisions', array('@count' => $num_revisions));
+      $link['href'] = "node/$nid/delete";
+      $links[] = $link;
     }
   }
   $args = arg();
   if ($access_view && $args[4] == 'view') {
-    $links[] = l(t('Show all revisions'), "node/$node->nid/revisions");
+    $link['title'] = t('Show all revisions');
+    $link['href'] = "node/$node->nid/revisions";
+    $links[] = $link;
   }
-  return $links;
+  $themed_links = array();
+  foreach ($links as $link) {
+    $link['type'] = $link_type;
+    $themed_links[] = theme('menu_item_link', $link);
+  }
+  return $themed_links;
 }
 
 /**
