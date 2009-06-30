@@ -118,6 +118,7 @@ function revisioning_menu() {
     'weight' => 1
   );
  */
+/*
   // Callback (not a menu item) to allow users to edit specified revision
   $items['node/%node/revisions/%/edit'] = array(
   //'title' => t('Edit revision'),
@@ -140,6 +141,7 @@ function revisioning_menu() {
     'access arguments' => array('publish revisions', 1),
     'type' => MENU_CALLBACK,
   );
+ */
   // Callback to allow users to unpublish a node
   $items['node/%node/unpublish'] = array(
   //'title' => t('Unpublish'),
@@ -149,6 +151,123 @@ function revisioning_menu() {
     'access arguments' => array('unpublish current revision', 1),
     'type' => MENU_CALLBACK,
   );
+  
+  /*
+   *  Revision local tasks.
+   *
+   *  Define revision operations like 'node/%node/revisions/%vid/<op>' in the
+   *  form of secondary local tasks (tabs) of the 'node/%node/revisions' primary
+   *  local task/tab.
+   *  The tricky part is to always set "tab_parent", core does NOT figure this
+   *  out based on the URL. %vid is optional: vid_to_arg() deals with it.
+   */
+
+  // Default local task.
+  // Diff can overwrite our settings for this local task, so we check it later. 
+  // See comments in menu_alter hook.
+  $items['node/%node/revisions/list'] = array(
+    'title' => 'List revisions',
+    'access callback' => 'module_grants_node_revision_access',
+    'access arguments' => array('view revisions', 1),
+    'weight' => -20,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  // View revision local task
+  $items['node/%node/revisions/%vid/view'] = array(
+    'title' => 'View revision',
+    'load arguments' => array(3),
+    'page callback' => 'node_page_view',
+    'page arguments' => array(1),
+    'access callback' => 'module_grants_node_revision_access',
+    'access arguments' => array('view revisions', 1),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -10,
+    'tab_parent' => 'node/%/revisions',
+  );
+  // Edit revision local task
+  $items['node/%node/revisions/%vid/edit'] = array(
+    'title' => 'Edit revision',
+    'load arguments' => array(3),
+    'page callback' => '_revision_edit',
+    'page arguments' => array(1),
+    'access callback' => 'module_grants_node_revision_access',
+    'access arguments' => array('edit revisions', 1),
+    'file' => 'node.pages.inc',
+    'file path' => drupal_get_path('module', 'node'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -7,
+    'tab_parent' => 'node/%/revisions',
+  );
+  // Publish revision local task
+  $items['node/%node/revisions/%vid/publish'] = array(
+    'title' => 'Publish revision',
+    'load arguments' => array(3),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('revisioning_publish_confirm', 1),
+    'access callback' => '_revision_tasks_menu_access_callback',
+    'access arguments' => array('publish revisions', 1),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -4,
+    'tab_parent' => 'node/%/revisions',
+  );
+  // Unpublish node local task
+  $items['node/%node/revisions/%vid/unpublish'] = array(
+    'title' => 'Unpublish revision',
+    'load arguments' => array(3),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('revisioning_unpublish_confirm', 1),
+    'access callback' => '_revision_tasks_menu_access_callback',
+    'access arguments' => array('unpublish current revision', 1),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -3,
+    'tab_parent' => 'node/%/revisions',
+  );
+  // Revert to selected revision local task.
+  // Difference from core version is %vid that's served by vid_to_arg() function.
+  $items['node/%node/revisions/%vid/revert'] = array(
+    'title' => 'Revert to this revision',
+    'load arguments' => array(3),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('node_revision_revert_confirm', 1),
+    'access callback' => '_revision_tasks_menu_access_callback',
+    'access arguments' => array('revert revisions', 1),
+    'file' => 'node.pages.inc',
+    'file path' => drupal_get_path('module', 'node'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -2,
+    'tab_parent' => 'node/%/revisions',
+  );
+  // Delete revision local task.
+  // Difference from core version is %vid that's served by vid_to_arg() function.
+  $items['node/%node/revisions/%vid/delete'] = array(
+    'title' => 'Delete revision',
+    'load arguments' => array(3),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('node_revision_delete_confirm', 1),
+    'access callback' => '_revision_tasks_menu_access_callback',
+    'access arguments' => array('delete revisions', 1),
+    'file' => 'node.pages.inc',
+    'file path' => drupal_get_path('module', 'node'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10,
+    'tab_parent' => 'node/%/revisions',
+  );
+
+  // If Diff module is enabled, provide compare local task which will use Diff's callback
+  if (module_exists('diff')) {
+    $items['node/%node/revisions/%vid/compare'] = array(
+      'title' => 'Compare to current',
+      'load arguments' => array(3),
+      'page callback' => '_compare_to_current_revision',
+      'page arguments' => array(1),
+      'access callback' => '_revision_tasks_menu_access_callback',
+      'access arguments' => array('compare revisions', 1),
+      'type' => MENU_LOCAL_TASK,
+      'weight' => 0,
+      'tab_parent' => 'node/%/revisions',
+    );
+  }
+
   return $items;
 }
 
@@ -198,10 +317,26 @@ function revisioning_menu_alter(&$items) {
   $items['node/%node/revisions']['page callback'] = '_present_node';
   $items['node/%node/revisions']['page arguments'] = array(1);
   
-  // If Diff module is enabled, make sure it uses correct access callback
+  // Unset old menu items defined in node.module, because they are replaced by
+  // ones that use the %vid wildcard instead of %
+  unset($items['node/%node/revisions/%/view']);
+  unset($items['node/%node/revisions/%/revert']);
+  unset($items['node/%node/revisions/%/delete']);
+
   if (module_exists('diff')) {
+    // If Diff module is enabled, make sure it uses correct access callback
     $items['node/%node/revisions/view/%/%']['access callback'] = 'module_grants_node_revision_access';
     $items['node/%node/revisions/view/%/%']['access arguments'] = array('view revisions', 1);
+
+    // We implement menu item at the same path as Diff's for consistency/compatibility.
+    // Just in case Diff overwrote it, define default local task once more.
+    $items['node/%node/revisions/list'] = array(
+      'title' => 'List revisions',
+      'access callback' => 'module_grants_node_revision_access',
+      'access arguments' => array('view revisions', 1),
+      'weight' => -20,
+      'type' => MENU_DEFAULT_LOCAL_TASK,
+    );
   }
 
   // Apart from administrators, allow those that pass the 'trigger_access_check'
@@ -210,6 +345,97 @@ function revisioning_menu_alter(&$items) {
   // to allow them to navigate to the trigger page via the menu).
   if (module_exists('trigger')) {
     $items['admin/build/trigger/revisioning']['access callback'] = 'trigger_access_check';
+  }
+}
+
+/**
+ * Perform path manipulations for menu items containing %vid wildcard.
+ * 
+ * Experimental: when vid is absent, set $map as empty array. This seem to disable menu items which require
+ * vid context to work. So on the page "node/123/revisions" we don't see menu tasks like "node/123/revisions/%/edit".
+ * This menu stuff is badly documented so we probably need some menu system guru to review it.
+ *
+ * Another possible behavior (commented lines) could be: substitute empty revision id with current revision id.
+ * In that case we would also need to change titles (via title callback) to indicate target of task.
+ * For example: we would need to change "Edit revision" to "Edit current revisions". Without changing
+ * menu titles it would be bad user experience.
+ *
+ * Both approaches could work. We can discuss which is better. See #500864 on Drupal.org
+ *
+ */
+function vid_to_arg($arg, &$map, $index) {
+  if (empty($arg)) {
+    //$nid = $map[1];
+    //return get_current_revision_id($nid);
+    $map = array();
+    return '';
+  }
+  return $arg;
+}
+
+/**
+ * Menu access callback for the displayed revision's local tasks.
+ * 
+ * Actual content access control is delegated to Module Grants. This function 
+ * just adds checking of the conditions under which the local tasks (tabs) 
+ * should appear.
+ */
+function _revision_tasks_menu_access_callback($op, $node) {
+  $current_revision_id = get_current_revision_id($node->nid);
+  $is_current = ($node->vid == $current_revision_id);
+  $is_pending = ($node->vid > $current_revision_id);
+
+  switch ($op) {
+    case 'delete revisions':
+      // If the revision is the current one, suppress the delete tab 
+      // @TODO unless it's the only revision, in which case delete the 
+      // entire node (different URL)
+      // $num_revisions = get_number_of_revisions($nid);
+      if ($is_current) {
+        return FALSE;
+      }
+      break;
+
+    case 'publish revisions':
+      // If this revision isn't pending and it's also not the current 
+      // unpublished one, suppress the publication tab 
+      if (!$is_pending && !($is_current && !$node->status)) {
+        return FALSE;
+      }
+      break;
+
+    case 'revert revisions':
+      // If this revision is pending (i.e. future) or current, suppress the
+      // revert tab
+      if ($is_pending || $is_current) {
+        return FALSE;
+      }
+      break;
+
+    case 'unpublish current revision':
+      // If the node is unpublished already or we're not looking at the current
+      // revision, suppress the unpublish tab
+      if (!$node->status || !$is_current) {
+        return FALSE;
+      }
+      break;
+  }
+  // Allow or disallow the requested $op based on the access grants
+  return module_grants_node_revision_access($op, $node);
+}
+
+/**
+ * Use diff's compare callback to compare specific revision to the current one
+ */
+if (module_exists('diff')) {
+  function _compare_to_current_revision($node) {
+    $current_revision_id = get_current_revision_id($node->nid);
+    $is_pending = ($node->vid > $current_revision_id);
+    // Make sure that latest of the two revisions is on the right
+    if ($is_pending) {
+      return diff_diffs_show($node, $current_revision_id, $node->vid);
+    }
+    return diff_diffs_show($node, $node->vid, $current_revision_id);
   }
 }
 
@@ -278,7 +504,7 @@ function revisioning_form_alter(&$form, &$form_state, $form_id) {
     $nid = $form['#node']->nid;
     if (!(empty($nid))) {
       // After saving an edit, redirect to revisions summary, if permitted.
-      $form['#redirect'] = user_access('view revisions') ? "/node/$nid/revisions" : "/node/$nid";
+      $form['#redirect'] = user_access('view revisions') ? "node/$nid/revisions" : "node/$nid";
 
       // Delete button needs special treatment
       if (isset($form['buttons']['delete'])) {
@@ -363,10 +589,6 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
     if (module_grants_node_revision_access('view revisions', $node)) {
       if (!$teaser && $node->nid == $args[1]) { // don't show msg on page with many nodes
         drupal_set_message(_get_node_info_msg($node));
-      }
-      global $theme_engine;
-      if (!isset($theme_engine)) {
-        _theme_content_menu($node);
       }
     }
   }
@@ -724,7 +946,7 @@ function _get_node_info_msg($node) {
   $revision_author = user_load($node->revision_uid);
   $placeholder_data =
     array('@content_type' => $node->type,
-          '%title' => check_plain($node->title),
+          '%title' => $node->title,
           '!author' => theme('username', $revision_author),
           '@date' => format_date($node->revision_timestamp, 'small'));
   $current_vid = get_current_revision_id($node->nid);
@@ -754,7 +976,8 @@ function generate_node_links_according_to_permissions($node, $link_type = 0) {
   $nid = $node->nid;
   $num_revisions = get_number_of_revisions($nid);
   if ($num_revisions == 1) {
-    return generate_revision_links_according_to_permissions($node, $link_type);
+    // This section requires work to present the correct links", 'error');
+    // return generate_revision_links_according_to_permissions($node, $link_type);
   }
   $links = array();
   if ($node->status && module_grants_node_revision_access('unpublish current revision', $node)) {
@@ -765,99 +988,6 @@ function generate_node_links_according_to_permissions($node, $link_type = 0) {
   if (module_grants_node_access('delete', $node)) {
     $link['title'] = $num_revisions == 2 ? t('Delete both revisions') : format_plural($num_revisions, 'Delete', 'Delete all @count revisions');
     $link['href'] = "node/$nid/delete";
-    $links[] = $link;
-  }
-  $themed_links = array();
-  foreach ($links as $link) {
-    $link['type'] = $link_type;
-    $themed_links[] = theme('menu_item_link', $link);
-  }
-  return $themed_links;
-}
-
-/**
- * Return an array of hyperlinks representing the operations the logged-in user
- * is allowed to perform on the supplied revision.
- *
- * @param $node
- * @param $link_type
- *   The type of link, e.g. MENU_IS_LOCAL_TASK, may affect the rendering via
- *   theme('menu_item_link'), if overridden (eg zen_theme_menu_item_link()).
- * @return array of themed hyperlinks
- */
-function generate_revision_links_according_to_permissions($node, $link_type = 0) {
-  $nid = $node->nid;
-  $current_revision_id = get_current_revision_id($nid);
-  $is_current = ($node->vid == $current_revision_id);
-  $is_pending = ($node->vid > $current_revision_id);
-  $num_revisions = get_number_of_revisions($nid);
-
-  $access_view      = module_grants_node_revision_access('view revisions', $node);
-  $access_edit      = module_grants_node_revision_access('edit revisions', $node);
-  $access_delete    = module_grants_node_revision_access('delete revisions', $node);
-  $access_publish   = module_grants_node_revision_access('publish revisions', $node);
-  $access_revert    = module_grants_node_revision_access('revert revisions', $node);
-  $access_unpublish = module_grants_node_revision_access('unpublish current revision', $node);
-
-  $links = array(); // Links to compare/revert/publish/delete revisions
-  if ($access_view) {
-    // Add a link to the diff if we have Diff module installed.
-    if (!$is_current && module_exists('diff')) {
-      $comparison_url = "node/$nid/revisions/view/";
-      // Make sure that latest of the two revisions is on the right
-      if ($is_pending) {
-        $comparison_url .= "$current_revision_id/$node->vid";
-      }
-      else {
-        $comparison_url .= "$node->vid/$current_revision_id";
-      }
-      $link['title'] = t('Compare to current');
-      $link['href'] = $comparison_url;
-      $links[] = $link;
-    }
-  }
-  $base_url = "node/$node->nid/revisions/$node->vid";
-  if ($access_edit) {
-    $link['title'] = $num_revisions == 1 ? t('Edit') : t('Edit this revision');
-    $link['href'] =  "$base_url/edit";
-    $links[] = $link;
-  }
-  // If this revision is pending or current but not published, return a
-  // publish link, otherwise show a revert link.
-  if ($access_publish && ($is_pending || ($is_current && !$node->status))) {
-    $link['title'] = $num_revisions == 1 ? t('Publish') : t('Publish this revision');
-    $link['href'] = "$base_url/publish";
-    $links[] = $link;
-  }
-  elseif ($access_revert && !$is_pending && !$is_current) {
-    $link['title'] = t('Revert to this revision');
-    $link['href'] = "$base_url/revert";
-    $links[] = $link;
-  }
-  if ($access_unpublish && $is_current && $node->status) {
-    $link['title'] = $num_revisions == 1 ? t('Unpublish') : t('Unpublish this revision');
-    $link['href'] = "node/$node->nid/unpublish";
-    $links[] = $link;
-  }
-  if ($access_delete) {
-    // Make sure to disallow deletion of current revision, unless it's the only
-    // revision, in which case show link to delete node.
-    if (!$is_current || $num_revisions <= 1) {
-      $link['title'] = $num_revisions <= 1 ? t('Delete') : t('Delete this revision');
-      $link['href'] = $num_revisions <= 1 ? "node/$nid/delete" : "$base_url/delete";
-      $links[] = $link;
-    }
-    elseif (!user_access('view revisions')) {
-      // User can't see revisions, but must have means to delete entire node
-      $link['title'] = $num_revisions == 2 ? t('Delete both revisions') : t('Delete all @count revisions', array('@count' => $num_revisions));
-      $link['href'] = "node/$nid/delete";
-      $links[] = $link;
-    }
-  }
-  $args = arg();
-  if ($access_view && $args[4] == 'view') {
-    $link['title'] = t('Show all revisions');
-    $link['href'] = "node/$node->nid/revisions";
     $links[] = $link;
   }
   $themed_links = array();

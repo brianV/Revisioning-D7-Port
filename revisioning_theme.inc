@@ -16,22 +16,14 @@ function revisioning_theme() {
     'revisioning_revisions_summary' => array(
       'arguments' => array('form' => array()),
     ),
-    'revision_submenu' => array(
-      'arguments' => array('submenu_links' => NULL),
-      'template' => 'revision-submenu', // revision-submenu.tpl.php
-    ),
-    'revision' => array(
-      'arguments' => array('submenu_links' => NULL, 'content' => NULL),
-      'template' => 'revision', // revision.tpl.php
+    'revisions_pending_block' => array(
+      'arguments' => array('content' => NULL),
+      'template' => 'revisions-pending-block', // revisions-pending-block.tpl.php
     ),
     'revisions_summary' => array(
       'arguments' => array('submenu_links' => NULL, 'content' => NULL),
       'template' => 'revisions-summary', // revisions-summary.tpl.php
     ),
-    'revisions_pending_block' => array(
-      'arguments' => array('content' => NULL),
-      'template' => 'revisions-pending-block', // revisions-pending-block.tpl.php
-    )
   );
 }
 
@@ -142,8 +134,13 @@ function revisioning_revisions_summary_submit($form, &$form_state) {
   drupal_set_message(
     t('Comparing revision #!revision2 against revision #!revision1',
     array('!revision2' => $vid2, '!revision1' => $vid1)));
+  $destination = '';
+  if (isset($_REQUEST['destination'])) {
+    $destination = drupal_get_destination();
+    unset($_REQUEST['destination']);
+  }
   $nid = $form_state['values']['nid'];
-  $form_state['redirect'] = "node/$nid/revisions/view/$vid2/$vid1";
+  $form_state['redirect'] = array("node/$nid/revisions/view/$vid2/$vid1", $destination);
 }
 
 /**
@@ -250,50 +247,6 @@ function theme_table_revisions($header, $rows) {
 function revisioning_preprocess_page(&$variables) {
 }
 
-/**
- * Implementation of <module>_preprocess_hook().
- * 
- * Gets called after the node has been fleshed out, but before it is rendered
- * via node.tpl.php. This gives us the opportunity to prepend to the content
- * some hyperlinks.
- * Only works when the theme is rendered through an ENGINE. Chameleon, for 
- * instance, is NOT and is handled by _theme_content_menu().
- * 
- * Uses the following subthemes:
- * o revision.tpl.php
- *
- * @param $variables
- * @return void
- */
-function revisioning_preprocess_node(&$variables) {
-  $args = arg();
-  // Only interested in URIs that start with "node/<nid>"
-  if ($args[0] != 'node' || !is_numeric($args[1])) {
-    return;
-  }
-  $css_path = drupal_get_path('module', 'revisioning') .'/revisioning.css';
-  drupal_add_css($css_path, 'module', 'all', FALSE); // also loads /revisioning-rtl.css
-  $submenu_links = generate_revision_links_according_to_permissions($variables['node']);
-  $variables['content'] = theme(array('revision'), $submenu_links, $variables['content']);
-}
-
-/**
- * Renders the submenu links as part of the content. Use for themes like
- * Chameleon that don't employ a theme engine.
- * 
- * Uses the following subtheme:
- * o revision-submenu.tpl.php
- * 
- * @param $node
- * @return themed HTML
- */
-
-function _theme_content_menu(&$node) {
-  $css_path = drupal_get_path('module', 'revisioning') .'/revisioning.css';
-  drupal_add_css($css_path, 'module', 'all', FALSE); // also loads /revisioning-rtl.css
-  $submenu_links = generate_revision_links_according_to_permissions($node);
-  $node->body = theme(array('revision_submenu', 'submenu'), $submenu_links) . $node->body;
-}
 
 function _theme_revisions_pending_block($nodes) {
   $max_num_shown = variable_get('revisioning_block_num_pending', 5);
