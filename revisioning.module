@@ -22,10 +22,25 @@ define('NEWEST_AT_TOP', 1);
 function revisioning_help($path, $arg) {
   switch ($path) {
     case 'node/%/revisions':
-      return '<p>'. t('To edit, publish or delete one of the revisions below, click on its saved date.') .'</p>';
+      $s = t('To edit, publish or delete one of the revisions below, click on its saved date.');
+      break;
     case 'admin/build/trigger/revisioning':
-      return '<p>'. t("Below you can assign actions to run when certain publication-related events happen. For example, you could send an e-mail to an author when their content is pubished.") .'</p>';
+      $s = t("Below you can assign actions to run when certain publication-related events happen. For example, you could send an e-mail to an author when their content is pubished.");
+      break;
+    case 'accessible-content/i-created/pending':
+      $s = t('Showing all <em>pending</em> content <em>you created</em> and still have at least view access to.');
+      break;
+    case 'accessible-content/i-last-modified/pending':
+      $s = t('Showing all <em>pending</em> content <em>you last modified</em> and still have at least view access to.');
+      break;
+    case 'accessible-content/i-can-edit/pending':
+      $s = t('Showing all <em>pending</em> content you can <em>edit</em>.');
+      break;
+    case 'accessible-content/i-can-view/pending':
+      $s = t('Showing all content you have at least <em>view</em> access to.');
+      break;
   }
+  return empty($s) ? '' : '<p>'. $s .'</p>';
 }
 
 /**
@@ -35,7 +50,7 @@ function revisioning_help($path, $arg) {
  * revisions already exist in node.module.
  */
 function revisioning_perm() {
-  return array('edit revisions', 'publish revisions', 'unpublish current revision');
+  return array("access 'Pending' tab", 'edit revisions', 'publish revisions', 'unpublish current revision');
 }
 
 /**
@@ -53,7 +68,8 @@ function revisioning_menu() {
     'title' => 'In draft/Pending publication',
     'page callback' => '_show_pending_nodes',
     'page arguments' => array('view', I_CREATED),
-    'access arguments' => array('access content summary'),
+    'access callback' => 'user_multi_access',
+    'access arguments' => array(array("access 'I created' tab", "access 'Pending' tab")),
     'type' => MENU_LOCAL_TASK,
     'weight' => -1
   );
@@ -62,7 +78,8 @@ function revisioning_menu() {
     'title' => 'In draft/Pending publication',
     'page callback' => '_show_pending_nodes',
     'page arguments' => array('view', I_LAST_MODIFIED),
-    'access arguments' => array('access content summary'),
+    'access callback' => 'user_multi_access',
+    'access arguments' => array(array("access 'I last modified' tab", "access 'Pending' tab")),
     'type' => MENU_LOCAL_TASK,
     'weight' => -1
   );
@@ -71,7 +88,8 @@ function revisioning_menu() {
     'title' => 'In draft/Pending publication',
     'page callback' => '_show_pending_nodes',
     'page arguments' => array('update'),
-    'access arguments' => array('access content summary'),
+    'access callback' => 'user_multi_access',
+    'access arguments' => array(array("access 'I can edit' tab", "access 'Pending' tab")),
     'type' => MENU_LOCAL_TASK,
     'weight' => -1
   );
@@ -80,44 +98,11 @@ function revisioning_menu() {
     'title' => 'In draft/Pending publication',
     'page callback' => '_show_pending_nodes',
     'page arguments' => array('view'),
-    'access arguments' => array('access content summary'),
+    'access callback' => 'user_multi_access',
+    'access arguments' => array(array("access 'I can view' tab", "access 'Pending' tab")),
     'type' => MENU_LOCAL_TASK,
     'weight' => -1
   );
-/*
-  // 'Moderated' and sub tabs
-  $items['accessible-content/moderated'] = array(
-    'title' => 'I can moderate',
-    'page callback' => '_show_pending_nodes',
-    'page arguments' => array('update'),
-    'access arguments' => array('access content summary'),
-    'type' => MENU_LOCAL_TASK,
-    'weight' => 12
-  );
-  $items['accessible-content/moderated/pending'] = array(
-    'title' => 'In draft/Pending publication',
-    'page callback' => 'show_pending_nodes',
-    'page arguments' => array('update'),
-    'access arguments' => array('access content summary'),
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => -1
-  );
-  $items['accessible-content/moderated/published'] = array(
-    'title' => 'Published',
-    'page callback' => 'show_accessible_content_summary',
-    'page arguments' => array('update', '1', NO_FILTER, TRUE),
-    'access arguments' => array('access content summary'),
-    'type' => MENU_LOCAL_TASK,
-  );
-  $items['accessible-content/moderated/not-published'] = array(
-    'title' => 'Not published',
-    'page callback' => 'show_accessible_content_summary',
-    'page arguments' => array('update', '0', NO_FILTER, TRUE),
-    'access arguments' => array('access content summary'),
-    'type' => MENU_LOCAL_TASK,
-    'weight' => 1
-  );
- */
 /*
   // Callback (not a menu item) to allow users to edit specified revision
   $items['node/%node/revisions/%/edit'] = array(
@@ -279,45 +264,21 @@ function revisioning_menu() {
  */
 function revisioning_menu_alter(&$items) {
 
-  // Change secondary filter tab default from Published' to 'In draft/Pending publication'
-  $items['accessible-content']['page callback'] = '_show_pending_nodes';
-  $items['accessible-content']['page arguments'] = array('view', I_LAST_MODIFIED);
-
-  $items['accessible-content/i-created']['page callback'] = '_show_pending_nodes';
-  $items['accessible-content/i-created']['page arguments'] = array('view', I_CREATED);
-  $items['accessible-content/i-created/published']['type'] = MENU_LOCAL_TASK;
-  $items['accessible-content/i-created/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
-
-  $items['accessible-content/i-last-modified']['page callback'] = '_show_pending_nodes';
-  $items['accessible-content/i-last-modified']['page arguments'] = array('view', I_LAST_MODIFIED);
-  $items['accessible-content/i-last-modified/published']['type'] = MENU_LOCAL_TASK;
-  $items['accessible-content/i-last-modified/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
-
-  $items['accessible-content/i-can-edit']['page callback'] = '_show_pending_nodes';
-  $items['accessible-content/i-can-edit']['page arguments'] = array('update');
-  $items['accessible-content/i-can-edit/published']['type'] = MENU_LOCAL_TASK;
-  $items['accessible-content/i-can-edit/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
-
-  $items['accessible-content/i-can-view']['page callback'] = '_show_pending_nodes';
-  $items['accessible-content/i-can-view']['page arguments'] = array('view');
-  $items['accessible-content/i-can-view/published']['type'] = MENU_LOCAL_TASK;
-  $items['accessible-content/i-can-view/pending']['type']  = MENU_DEFAULT_LOCAL_TASK;
-
   // Rename "View" tab
   $items['node/%node/view']['title'] = 'View current';
 
-  // Remove "Edit" as a tab and redirect existing edit links to
-  // _present_node() to ensure user picks desired revision first.
-  $items['node/%node/edit']['page callback'] = '_present_node';
-  $items['node/%node/edit']['page arguments'] = array(1, 'edit');
-  $items['node/%node/edit']['type'] = MENU_CALLBACK;
+  // Rename "Edit" tab
+  $items['node/%node/edit']['title'] = 'Edit current';
+//$items['node/%node/edit']['page callback'] = '_present_node';
+//$items['node/%node/edit']['page arguments'] = array(1, 'edit');
+//$items['node/%node/edit']['type'] = MENU_CALLBACK;
 
-  // "Revisions" tab remains but points to new page callback, which ensures users
-  // pick the desired revision to view, edit, publish, revert, unpublish, delete.
+  // "Revisions" tab remains but points to new page callback, allowing users to
+  // pick the revision to view, edit, publish, revert, unpublish, delete.
   $items['node/%node/revisions']['page callback'] = '_present_node';
   $items['node/%node/revisions']['page arguments'] = array(1);
   
-  // Unset old menu items defined in node.module, because they are replaced by
+  // Unset old menu items defined in node.module, as these are replaced by
   // ones that use the %vid wildcard instead of %
   unset($items['node/%node/revisions/%/view']);
   unset($items['node/%node/revisions/%/revert']);
@@ -357,7 +318,7 @@ function revisioning_menu_alter(&$items) {
  *
  * Another possible behavior (commented lines) could be: substitute empty revision id with current revision id.
  * In that case we would also need to change titles (via title callback) to indicate target of task.
- * For example: we would need to change "Edit revision" to "Edit current revisions". Without changing
+ * For example: we would need to change "Edit revision" to "Edit current revision". Without changing
  * menu titles it would be bad user experience.
  *
  * Both approaches could work. We can discuss which is better. See #500864 on Drupal.org
@@ -387,10 +348,9 @@ function _revision_tasks_menu_access_callback($op, $node) {
 
   switch ($op) {
     case 'delete revisions':
-      // If the revision is the current one, suppress the delete tab 
-      // @TODO unless it's the only revision, in which case delete the 
-      // entire node (different URL)
-      // $num_revisions = get_number_of_revisions($nid);
+      // If the revision is the current one, suppress the delete tab ... 
+      // @TODO ...unless it's the only revision, in which case delete the 
+      // entire node; this requires a different URL
       if ($is_current) {
         return FALSE;
       }
