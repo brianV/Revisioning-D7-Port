@@ -68,7 +68,7 @@ function revisioning_menu() {
     'title' => 'In draft/Pending publication',
     'page callback' => '_show_pending_nodes',
     'page arguments' => array('view', I_CREATED),
-    'access callback' => 'user_multi_access',
+    'access callback' => 'user_all_access',
     'access arguments' => array(array("access 'I created' tab", "access 'Pending' tab")),
     'type' => MENU_LOCAL_TASK,
     'weight' => -1
@@ -78,7 +78,7 @@ function revisioning_menu() {
     'title' => 'In draft/Pending publication',
     'page callback' => '_show_pending_nodes',
     'page arguments' => array('view', I_LAST_MODIFIED),
-    'access callback' => 'user_multi_access',
+    'access callback' => 'user_all_access',
     'access arguments' => array(array("access 'I last modified' tab", "access 'Pending' tab")),
     'type' => MENU_LOCAL_TASK,
     'weight' => -1
@@ -88,7 +88,7 @@ function revisioning_menu() {
     'title' => 'In draft/Pending publication',
     'page callback' => '_show_pending_nodes',
     'page arguments' => array('update'),
-    'access callback' => 'user_multi_access',
+    'access callback' => 'user_all_access',
     'access arguments' => array(array("access 'I can edit' tab", "access 'Pending' tab")),
     'type' => MENU_LOCAL_TASK,
     'weight' => -1
@@ -98,38 +98,15 @@ function revisioning_menu() {
     'title' => 'In draft/Pending publication',
     'page callback' => '_show_pending_nodes',
     'page arguments' => array('view'),
-    'access callback' => 'user_multi_access',
+    'access callback' => 'user_all_access',
     'access arguments' => array(array("access 'I can view' tab", "access 'Pending' tab")),
     'type' => MENU_LOCAL_TASK,
     'weight' => -1
   );
-/*
-  // Callback (not a menu item) to allow users to edit specified revision
-  $items['node/%node/revisions/%/edit'] = array(
-  //'title' => t('Edit revision'),
-    'load arguments' => array(3),
-    'page callback' => '_revision_edit',
-    'page arguments' => array(1),
-    'access callback' => 'module_grants_node_revision_access',
-    'access arguments' => array('edit revisions', 1),
-    'file' => 'node.pages.inc',
-    'file path' => drupal_get_path('module', 'node'),
-    'type' => MENU_CALL_BACK,
-  );
-  // Callback to allow users to publish revisions
-  $items['node/%node/revisions/%/publish'] = array(
-  //'title' => t('Publish revision'),
-    'load arguments' => array(3),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('revisioning_publish_confirm', 1),
-    'access callback' => 'module_grants_node_revision_access',
-    'access arguments' => array('publish revisions', 1),
-    'type' => MENU_CALLBACK,
-  );
- */
+
   // Callback to allow users to unpublish a node
   $items['node/%node/unpublish'] = array(
-  //'title' => t('Unpublish'),
+  //'title' => t(Unpublish current revision'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('revisioning_unpublish_confirm', 1),
     'access callback' => 'module_grants_node_revision_access',
@@ -137,29 +114,18 @@ function revisioning_menu() {
     'type' => MENU_CALLBACK,
   );
   
-  /*
-   *  Revision local tasks.
-   *
-   *  Define revision operations like 'node/%node/revisions/%vid/<op>' in the
-   *  form of secondary local tasks (tabs) of the 'node/%node/revisions' primary
-   *  local task/tab.
-   *  The tricky part is to always set "tab_parent", core does NOT figure this
-   *  out based on the URL. %vid is optional: vid_to_arg() deals with it.
-   */
-
-  // Default local task.
-  // Diff can overwrite our settings for this local task, so we check it later. 
-  // See comments in menu_alter hook.
-  $items['node/%node/revisions/list'] = array(
-    'title' => 'List revisions',
-    'access callback' => 'module_grants_node_revision_access',
-    'access arguments' => array('view revisions', 1),
-    'weight' => -20,
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
+  // Revision local tasks.
+  // Define revision operations like 'node/%node/revisions/%vid/<op>' in the
+  // form of secondary local tasks (tabs) of the 'node/%node/revisions' 
+  // primary local task/tab.
+  // The tricky part is to always set "tab_parent", core does NOT figure this
+  // out based on the URL. %vid is optional: vid_to_arg() deals with it.
+  // Note: the MENU_DEFAULT_LOCAL_TASK for 'node/%node/revisions' is defined in
+  //       revisioning_menu_alter()
+  
   // View revision local task
   $items['node/%node/revisions/%vid/view'] = array(
-    'title' => 'View revision',
+    'title' => 'View',
     'load arguments' => array(3),
     'page callback' => 'node_page_view',
     'page arguments' => array(1),
@@ -171,7 +137,7 @@ function revisioning_menu() {
   );
   // Edit revision local task
   $items['node/%node/revisions/%vid/edit'] = array(
-    'title' => 'Edit revision',
+    'title' => 'Edit',
     'load arguments' => array(3),
     'page callback' => '_revision_edit',
     'page arguments' => array(1),
@@ -185,7 +151,7 @@ function revisioning_menu() {
   );
   // Publish revision local task
   $items['node/%node/revisions/%vid/publish'] = array(
-    'title' => 'Publish revision',
+    'title' => 'Publish this',
     'load arguments' => array(3),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('revisioning_publish_confirm', 1),
@@ -197,7 +163,7 @@ function revisioning_menu() {
   );
   // Unpublish node local task
   $items['node/%node/revisions/%vid/unpublish'] = array(
-    'title' => 'Unpublish revision',
+    'title' => 'Unpublish this',
     'load arguments' => array(3),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('revisioning_unpublish_confirm', 1),
@@ -210,7 +176,7 @@ function revisioning_menu() {
   // Revert to selected revision local task.
   // Difference from core version is %vid that's served by vid_to_arg() function.
   $items['node/%node/revisions/%vid/revert'] = array(
-    'title' => 'Revert to this revision',
+    'title' => 'Revert to this',
     'load arguments' => array(3),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('node_revision_revert_confirm', 1),
@@ -225,7 +191,7 @@ function revisioning_menu() {
   // Delete revision local task.
   // Difference from core version is %vid that's served by vid_to_arg() function.
   $items['node/%node/revisions/%vid/delete'] = array(
-    'title' => 'Delete revision',
+    'title' => 'Delete',
     'load arguments' => array(3),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('node_revision_delete_confirm', 1),
@@ -264,15 +230,12 @@ function revisioning_menu() {
  */
 function revisioning_menu_alter(&$items) {
 
-  // Rename "View" tab
-  $items['node/%node/view']['title'] = 'View current';
+  $items['node/%node/view']['access callback'] = '_revision_tasks_menu_access_callback';
+  $items['node/%node/view']['access arguments'] = array('view current', 1);
 
-  // Rename "Edit" tab
-  $items['node/%node/edit']['title'] = 'Edit current';
-//$items['node/%node/edit']['page callback'] = '_present_node';
-//$items['node/%node/edit']['page arguments'] = array(1, 'edit');
-//$items['node/%node/edit']['type'] = MENU_CALLBACK;
-
+  $items['node/%node/edit']['access callback'] = '_revision_tasks_menu_access_callback';
+  $items['node/%node/edit']['access arguments'] = array('edit current', 1);
+  
   // "Revisions" tab remains but points to new page callback, allowing users to
   // pick the revision to view, edit, publish, revert, unpublish, delete.
   $items['node/%node/revisions']['page callback'] = '_present_node';
@@ -288,17 +251,16 @@ function revisioning_menu_alter(&$items) {
     // If Diff module is enabled, make sure it uses correct access callback
     $items['node/%node/revisions/view/%/%']['access callback'] = 'module_grants_node_revision_access';
     $items['node/%node/revisions/view/%/%']['access arguments'] = array('view revisions', 1);
-
-    // We implement menu item at the same path as Diff's for consistency/compatibility.
-    // Just in case Diff overwrote it, define default local task once more.
-    $items['node/%node/revisions/list'] = array(
-      'title' => 'List revisions',
-      'access callback' => 'module_grants_node_revision_access',
-      'access arguments' => array('view revisions', 1),
-      'weight' => -20,
-      'type' => MENU_DEFAULT_LOCAL_TASK,
-    );
   }
+  // This is here rarther than in revisioning_menu() as Diff may redefine
+  // the node/%node/revisions/list item.
+  $items['node/%node/revisions/list'] = array(
+    'title' => 'List all revisions',
+    'access callback' => 'module_grants_node_revision_access',
+    'access arguments' => array('view revisions', 1),
+    'weight' => -20,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
 
   // Apart from administrators, allow those that pass the 'trigger_access_check'
   // to configure the revisioning triggers. This means that users must have at
@@ -321,7 +283,7 @@ function revisioning_menu_alter(&$items) {
  * For example: we would need to change "Edit revision" to "Edit current revision". Without changing
  * menu titles it would be bad user experience.
  *
- * Both approaches could work. We can discuss which is better. See #500864 on Drupal.org
+ * Both approaches could work. See #500864 on Drupal.org
  *
  */
 function vid_to_arg($arg, &$map, $index) {
@@ -347,6 +309,21 @@ function _revision_tasks_menu_access_callback($op, $node) {
   $is_pending = ($node->vid > $current_revision_id);
 
   switch ($op) {
+    // Suppress 'View curent' and 'Edit current' tabs on pages with URL of the
+    // form 'node/%/revisions/%vid/..., i.e. where %vid exists and is numeric.
+    case 'view current': 
+      return !is_numeric(arg(3)) && module_grants_node_access('view', $node);
+
+    case 'edit current':
+      return !is_numeric(arg(3)) && module_grants_node_access('update', $node);
+
+    case 'compare revisions':
+      if ($is_current) {
+        return FALSE;
+      }
+      $op = 'view revisions';
+      break;
+      
     case 'delete revisions':
       // If the revision is the current one, suppress the delete tab ... 
       // @TODO ...unless it's the only revision, in which case delete the 
@@ -460,27 +437,45 @@ function revisioning_form_alter(&$form, &$form_state, $form_id) {
         '#value' => is_moderated($content_type)
       );
     }
-
+    
     $nid = $form['#node']->nid;
-    if (!(empty($nid))) {
-      // After saving an edit, redirect to revisions summary, if permitted.
-      $form['#redirect'] = user_access('view revisions') ? "node/$nid/revisions" : "node/$nid";
+    $vid = $form['#node']->vid;
 
-      // Delete button needs special treatment
-      if (isset($form['buttons']['delete'])) {
-        $form['buttons']['delete']['#submit'] = array('_revision_delete_submit');
-        if (get_number_of_revisions($nid) > 1) {
-          if (!user_access('delete revisions') || $form['#node']->vid == get_current_revision_id($nid)) {
-            // Disallow deletion of current revision as BAD things will happen if you do!
-            unset($form['buttons']['delete']);
-          }
-          else {
-            $form['buttons']['delete']['#value'] = 'Delete this revision';
-          }
-        }
-      }
+    // When saving a new revision redirect to the revision summary, rather
+    // than "View current" (as that's not the one we've saved).
+    // Note: don't want to do this when Deleting, so this code is in wrong place
+    // Is there a suitable hook we can use?
+    /* @TODO
+    if (user_access('view revisions') && is_moderated($content_type)) {
+      $form['#redirect'] = "node/$nid/revisions";
+    }*/
+    
+    // Change the meaning of the 'Delete' button when editing a revision to be
+    // the deletion of the revision currently being viewed, rather than the node.
+    if (isset($form['buttons']['delete']) && user_access('delete revisions') && $vid != get_current_revision_id($nid)) {
+      $form['buttons']['delete']['#value'] = 'Delete this revision';
+      $form['buttons']['delete']['#submit'] = array('_revision_delete_submit');
     }
   }
+}
+
+/**
+ * Handle the 'Delete this revision' button on the edit form
+ *
+ * Redirect to revision deletion confirm (as opposed to node deletion confirm).
+ */
+function _revision_delete_submit(&$form, &$form_state) {
+  $node = $form['#node'];
+  $form['#redirect'] = "node/$node->nid/revisions/$node->vid/delete";
+}
+
+/**
+ * Implementation of hook_form_FORM_ID_alter(), see node.pages.inc/node_delete_confirm()
+ * This is called when 'Delete' or 'Delete all revisions' is pressed
+ */
+function revisioning_form_node_delete_confirm_alter(&$form, &$form_state) {
+  $nid = $form['nid']['#value'];
+  $form['actions']['cancel']['#value'] = l(t('Cancel'), "node/$nid/revisions");
 }
 
 /**
@@ -706,7 +701,8 @@ function revisioning_unpublish_confirm_submit($form, &$form_state) {
 }
 
 /**
- * Implementation of hook_form_FORM_ID_alter(), see node.pages.inc/node_revision_revert_confirm()
+ * Implementation of hook_form_FORM_ID_alter(), see 
+ * node.pages.inc/node_revision_revert_confirm()
  */
 function revisioning_form_node_revision_revert_confirm_alter(&$form, &$form_state) {
   $node = $form['#node_revision'];
@@ -739,28 +735,6 @@ function revisioning_revert_confirm_submit($form, &$form_state) {
   cache_clear_all();
   // Invoke the revisioning trigger passing 'revert' as the operation
   module_invoke_all('revisioning', 'revert');
-}
-
-/**
- * Handle the 'Delete' button on the edit form
- *
- * Redirect to revision deletion confirm (as opposed to node deletion confirm).
- */
-function _revision_delete_submit(&$form, &$form_state) {
-  $node = $form['#node'];
-  $form['#redirect'] =  (get_number_of_revisions($node->nid) == 1)
-    ? "node/$node->nid/delete" // delete entire node
-    : "node/$node->nid/revisions/$node->vid/delete";
-}
-
-/**
- * Implementation of hook_form_FORM_ID_alter(), see node.pages.inc/node_delete_confirm()
- * This is called when the 'Delete all revisions' link is pressed
- */
-function revisioning_form_node_delete_confirm_alter(&$form, &$form_state) {
-  if (user_access('access content summary')) {
-    $form['#redirect'] = 'accessible-content';
-  }
 }
 
 /**
