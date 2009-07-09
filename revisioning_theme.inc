@@ -64,6 +64,12 @@ function revisioning_revisions_summary($form_state, $nid) {
 
   $revision_ids = array();
   foreach ($revisions as $revision) {
+    if (!empty($revision->type)) {
+      // This is the current revision which holds publication status and content type 
+      $content_type = $revision->type;
+      $title = $revision->title;
+      $published = $revision->status;
+    }
     $vid = $revision->vid;
     $revision_ids[$vid] = ''; // no text next to check box 
     $base_url = "node/$nid/revisions/$vid";
@@ -81,9 +87,14 @@ function revisioning_revisions_summary($form_state, $nid) {
     }
   }
   drupal_set_message(format_plural(count($revisions),
-    'This @content_type has only one revision', 
-    'This @content_type has @count revisions.', 
-    array('@content_type' => $revision->type)));
+    '@publication_status @content_type %title has only one revision', 
+    '@publication_status @content_type %title has @count revisions.', 
+    array(
+     '@publication_status' => ($published ? t('Published') : t('Unpublished')),
+     '@content_type' => $content_type,
+     '%title' => $title,
+    )
+  ));
   
   if (count($revisions) >= 2 && module_exists('diff')) {
     // Second column: check-boxes to select two revisions to compare
@@ -233,20 +244,6 @@ function theme_revisioning_revisions_summary($form) {
 function theme_table_revisions($header, $rows) {
 }
  */
-
-/**
- * Implementation of <module>_preprocess_hook().
- *
- * Gets called before the page is rendered via page.tpl.php. This gives us the
- * opportunity to insert and manipulate items on the page (via $variablies).
- * Only works when the theme is rendered through an ENGINE.
- *
- * @param $variables
- * @return void
- */
-function revisioning_preprocess_page(&$variables) {
-}
-
 
 function _theme_revisions_pending_block($nodes) {
   $max_num_shown = variable_get('revisioning_block_num_pending', 5);
