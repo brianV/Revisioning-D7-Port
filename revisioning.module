@@ -258,8 +258,10 @@ function revisioning_menu_alter(&$items) {
     'title' => 'List all revisions',
     'access callback' => 'module_grants_node_revision_access',
     'access arguments' => array('view revisions', 1),
-    'weight' => -20,
+    'file' => 'node.pages.inc',
+    'file path' => drupal_get_path('module', 'node'),
     'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -20,
   );
 
   // Apart from administrators, allow those that pass the 'trigger_access_check'
