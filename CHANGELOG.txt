@@ -63,5 +63,16 @@ o [#465890] Option to create new revisions at every save, as opposed to only
 6.x-2.6
 =======
 o Update of German translations [thanks: rastatt]
-o Pending revisions alert block
-o Auto-publish on save option (for moderators)
+o #500864: Use menu local tasks for revision links and actions., stage 1 (thanks: crea)
+o Bug fix: #505724: User is taken to //node/%nid/revisions after editing node (thanks: dboulet)
+o Bug fix: #499126: Query string 'destination' overrides diff redirect path (thanks: dboulet)
+o Bug fix: #499820: HTML entities are not displayed correctly in node titles in messages (thanks: dboulet)
+o Bug fix: #415012: Do not show revisioning info on teaser view
+o Bug fix: #416998: Revisioning takes over all "Edit" in all content
+o Bug fix: #484774: Only Show Revisioning Sublinks if Revisions Enabled for That Content Type
+o Feature: returned Delete button: #482184: Who stole my delete button !
+o Feature: Pending revisions alert: a small "block" a moderator can place anywhere on the screen showing the latest (or oldest) content titles currently awaiting review and publication. Gets updated automatically as the moderator clicks around the screen (even when navigating to pages not related to moderation).
+o Feature: #428354: Tab for listing author's content (via latest version of Module Grants)
+o Feature: Auto-publication upon save: new option for moderators, saving them another couple of clicks; see also: #470308: New content remains unpublished for users with Publish permissions
+o Feature: #481018: Revisioning triggers are only listed for user #1
+o Feature: revisioning for user profiles: install Content Profile; see #480618: Revisioning for content types set as profiles?
