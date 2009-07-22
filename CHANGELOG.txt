@@ -76,3 +76,7 @@ o Feature: #428354: Tab for listing author's content (via latest version of Modu
 o Feature: Auto-publication upon save: new option for moderators, saving them another couple of clicks; see also: #470308: New content remains unpublished for users with Publish permissions
 o Feature: #481018: Revisioning triggers are only listed for user #1
 o Feature: revisioning for user profiles: install Content Profile; see #480618: Revisioning for content types set as profiles?
+
+6.x-2.7
+=======
+o [#513078]:introductiong 'view own revisions' permission.
