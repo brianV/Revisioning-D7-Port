@@ -50,7 +50,7 @@ function revisioning_help($path, $arg) {
  * revisions already exist in node.module.
  */
 function revisioning_perm() {
-  return array("access 'Pending' tab", 'edit revisions', 'publish revisions', 'unpublish current revision');
+  return array("access 'Pending' tab", 'edit revisions', 'publish revisions', 'unpublish current revision', 'view own revisions');
 }
 
 /**
@@ -129,7 +129,7 @@ function revisioning_menu() {
     'load arguments' => array(3),
     'page callback' => 'node_page_view',
     'page arguments' => array(1),
-    'access callback' => 'module_grants_node_revision_access',
+    'access callback' => '_revision_tasks_menu_access_callback',
     'access arguments' => array('view revisions', 1),
     'type' => MENU_LOCAL_TASK,
     'weight' => -10,
@@ -240,6 +240,8 @@ function revisioning_menu_alter(&$items) {
   // pick the revision to view, edit, publish, revert, unpublish, delete.
   $items['node/%node/revisions']['page callback'] = '_present_node';
   $items['node/%node/revisions']['page arguments'] = array(1);
+  $items['node/%node/revisions']['access callback'] = '_revision_tasks_menu_access_callback';
+  $items['node/%node/revisions']['access arguments'] = array('view revisions', 1); 
   
   // Unset old menu items defined in node.module, as these are replaced by
   // ones that use the %vid wildcard instead of %
@@ -249,14 +251,14 @@ function revisioning_menu_alter(&$items) {
 
   if (module_exists('diff')) {
     // If Diff module is enabled, make sure it uses correct access callback
-    $items['node/%node/revisions/view/%/%']['access callback'] = 'module_grants_node_revision_access';
+    $items['node/%node/revisions/view/%/%']['access callback'] = '_revision_tasks_menu_access_callback';
     $items['node/%node/revisions/view/%/%']['access arguments'] = array('view revisions', 1);
   }
-  // This is here rarther than in revisioning_menu() as Diff may redefine
+  // This is here rather than in revisioning_menu() as Diff may redefine
   // the node/%node/revisions/list item.
   $items['node/%node/revisions/list'] = array(
     'title' => 'List all revisions',
-    'access callback' => 'module_grants_node_revision_access',
+    'access callback' => '_revision_tasks_menu_access_callback',
     'access arguments' => array('view revisions', 1),
     'file' => 'node.pages.inc',
     'file path' => drupal_get_path('module', 'node'),
@@ -315,7 +317,19 @@ function _revision_tasks_menu_access_callback($op, $node) {
     // form 'node/%/revisions/%vid/..., i.e. where %vid exists and is numeric.
     case 'view current': 
       return !is_numeric(arg(3)) && module_grants_node_access('view', $node);
-
+      
+    case 'view revisions':
+      global $user;
+      // Implement node-author-only permission
+      // This can be further expanded to additional revision-author-only permissions. 
+      if ($node->uid == $user->uid && user_access('view own revisions')) {
+      	drupal_set_message("$user->name has 'view own revisons' permission and is the author.");
+        return TRUE;
+      }
+      drupal_set_message("You are not the author of this content but may view its revisions");
+      // fallback to global "view revisions" permissions.
+      break;
+   
     case 'edit current':
       return !is_numeric(arg(3)) && module_grants_node_access('update', $node);
 
@@ -323,8 +337,7 @@ function _revision_tasks_menu_access_callback($op, $node) {
       if ($is_current) {
         return FALSE;
       }
-      $op = 'view revisions';
-      break;
+      return _revision_tasks_menu_access_callback('view revisions', $node);
       
     case 'delete revisions':
       // If the revision is the current one, suppress the delete tab ... 
@@ -543,7 +556,7 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
     return;
   }
   if ($op == 'alter') { // called just after $node object is fully built for display
-    if (module_grants_node_revision_access('view revisions', $node)) {
+  	if (_revision_tasks_menu_access_callback('view revisions', $node)) {
       if (!$teaser && $node->nid == $args[1]) { // don't show msg on page with many nodes
         drupal_set_message(_get_node_info_msg($node));
       }
@@ -911,12 +924,13 @@ function _get_node_info_msg($node) {
 function generate_node_links_according_to_permissions($node, $link_type = 0) {
   $nid = $node->nid;
   $num_revisions = get_number_of_revisions($nid);
-  if ($num_revisions == 1) {
-    // This section requires work to present the correct links", 'error');
-    // return generate_revision_links_according_to_permissions($node, $link_type);
-  }
   $links = array();
-  if ($node->status && module_grants_node_revision_access('unpublish current revision', $node)) {
+  if ($num_revisions == 1 && !$node->status && module_grants_node_revision_access('publish revisions', $node)) {
+    $link['title'] = t('Publish');
+    $link['href'] = "node/$nid/revisions/$node->vid/publish";
+    $links[] = $link;
+  }
+  elseif ($node->status && module_grants_node_revision_access('unpublish current revision', $node)) {
     $link['title'] = t('Unpublish current revision');
     $link['href'] = "node/$nid/unpublish";
     $links[] = $link;
