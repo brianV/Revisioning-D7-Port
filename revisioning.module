@@ -50,7 +50,7 @@ function revisioning_help($path, $arg) {
  * revisions already exist in node.module.
  */
 function revisioning_perm() {
-  return array("access 'Pending' tab", 'edit revisions', 'publish revisions', 'unpublish current revision', 'view own revisions');
+  return array("access 'Pending' tab", 'edit revisions', 'publish revisions', 'unpublish current revision', 'view revisions of own content');
 }
 
 /**
@@ -320,12 +320,12 @@ function _revision_tasks_menu_access_callback($op, $node) {
       
     case 'view revisions':
       global $user;
-      // Implement 'view own revisions' permission, which is currently really
-      // a 'view revisions of content I initially created' permission.
-      if ($node->uid == $user->uid && user_access('view own revisions')) {
+      // Implement 'view revisions of own content' permission, meaning
+      // 'view all revisions of content I created the first draft of'.
+      if ($node->uid == $user->uid && user_access('view revisions of own content')) {
         return TRUE;
       }
-      // Fallback to global 'view revisions' permission.
+      // Fall back to global 'view revisions' permission.
       break;
    
     case 'edit current':
@@ -1038,7 +1038,7 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
       break;
 
     case 'view':
-      if (user_access('view revisions') || user_access('view own revisions')) {
+      if (user_access('view revisions') || user_access('view revisions of own content')) {
         $order = variable_get('revisioning_block_order', OLDEST_AT_TOP) == OLDEST_AT_TOP ? 'ASC' : 'DESC';
         $nodes = get_nodes('update', NO_FILTER, NO_FILTER, NO_FILTER, TRUE, TRUE, 100, FALSE, 'timestamp '. $order);
         if (!empty($nodes)) {
