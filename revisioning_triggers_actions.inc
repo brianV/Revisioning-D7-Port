@@ -91,5 +91,10 @@ function revisioning_publish_latest_revision_action(&$node, $context = array()) 
   watchdog('revisioning',
     'Executing publish_latest_revision action for @type %title', array('@type' => $type, '%title' => $node->title),
     WATCHDOG_NOTICE, l(t('view'), "node/$node->nid"));
-  revisioning_publish_latest_revision($node);
+  if (_revisioning_publish_latest_revision($node)) {
+    drupal_set_message(t('Revision has been published.'));
+  }
+  else {
+    drupal_set_message(t('"!title" has no pending revision to be published.', array('!title' => $node->title)), 'warning');
+  }
 }
