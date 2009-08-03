@@ -288,7 +288,7 @@ function revisioning_menu_alter(&$items) {
     'access arguments' => array('view revisions', 1),
     'file' => 'node.pages.inc',
     'file path' => drupal_get_path('module', 'node'),
-    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'type' => MENU_LOCAL_TASK, // was: MENU_DEFAULT_LOCAL_TASK; changed for Smart tabs
     'weight' => -20,
   );
 
