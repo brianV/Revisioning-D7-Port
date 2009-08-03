@@ -830,16 +830,19 @@ function generate_node_links_according_to_permissions($node, $link_type = 0) {
   if ($num_revisions == 1 && !$node->status && module_grants_node_revision_access('publish revisions', $node)) {
     $link['title'] = t('Publish');
     $link['href'] = "node/$nid/revisions/$node->vid/publish";
+    $link['localized_options']['query'] = drupal_get_destination();
     $links[] = $link;
   }
   elseif ($node->status && module_grants_node_revision_access('unpublish current revision', $node)) {
     $link['title'] = t('Unpublish current revision');
     $link['href'] = "node/$nid/unpublish";
+    $link['localized_options']['query'] = drupal_get_destination();
     $links[] = $link;
   }
   if (module_grants_node_access('delete', $node)) {
     $link['title'] = $num_revisions == 2 ? t('Delete both revisions') : format_plural($num_revisions, 'Delete', 'Delete all @count revisions');
     $link['href'] = "node/$nid/delete";
+    $link['localized_options']['query'] = '';
     $links[] = $link;
   }
   $themed_links = array();
