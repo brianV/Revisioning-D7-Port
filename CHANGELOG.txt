@@ -80,3 +80,9 @@ o Feature: revisioning for user profiles: install Content Profile; see #480618: 
 6.x-2.7
 =======
 o [#513078]:introductiong 'view own revisions' permission.
+
+6.x-2.8
+=======
+o Rules integration (thanks: crea)
+o Avoid same message being shown twice [#536826] (thanks: dboulet & crea)
+
