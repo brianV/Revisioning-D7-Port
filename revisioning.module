@@ -52,7 +52,7 @@ function revisioning_help($path, $arg) {
  * revisions already exist in node.module.
  */
 function revisioning_perm() {
-  return array("access 'Pending' tab", 'edit revisions', 'publish revisions', 'unpublish current revision', 'view revisions of own content');
+  return array('access Pending tab', 'edit revisions', 'publish revisions', 'unpublish current revision', 'view revisions of own content');
 }
 
 /**
@@ -95,7 +95,7 @@ function revisioning_menu() {
     'page callback' => '_show_pending_nodes',
     'page arguments' => array('view', I_CREATED),
     'access callback' => 'user_all_access',
-    'access arguments' => array(array("access 'I created' tab", "access 'Pending' tab")),
+    'access arguments' => array(array('access I Created tab', 'access Pending tab')),
     'type' => MENU_LOCAL_TASK,
     'weight' => -1
   );
@@ -105,7 +105,7 @@ function revisioning_menu() {
     'page callback' => '_show_pending_nodes',
     'page arguments' => array('view', I_LAST_MODIFIED),
     'access callback' => 'user_all_access',
-    'access arguments' => array(array("access 'I last modified' tab", "access 'Pending' tab")),
+    'access arguments' => array(array('access I Last Modified tab', 'access Pending tab')),
     'type' => MENU_LOCAL_TASK,
     'weight' => -1
   );
@@ -115,7 +115,7 @@ function revisioning_menu() {
     'page callback' => '_show_pending_nodes',
     'page arguments' => array('update'),
     'access callback' => 'user_all_access',
-    'access arguments' => array(array("access 'I can edit' tab", "access 'Pending' tab")),
+    'access arguments' => array(array('access I Can Edit tab', 'access Pending tab')),
     'type' => MENU_LOCAL_TASK,
     'weight' => -1
   );
@@ -125,7 +125,7 @@ function revisioning_menu() {
     'page callback' => '_show_pending_nodes',
     'page arguments' => array('view'),
     'access callback' => 'user_all_access',
-    'access arguments' => array(array("access 'I can view' tab", "access 'Pending' tab")),
+    'access arguments' => array(array('access I Can View tab', 'access Pending tab')),
     'type' => MENU_LOCAL_TASK,
     'weight' => -1
   );
