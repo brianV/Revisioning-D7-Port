@@ -64,7 +64,7 @@ function revisioning_admin_settings() {
   $form['revision_info_messages'] = array(
     '#type' => 'checkbox',
     '#title' => t('Print revision information'),
-    '#description' => t('If enabled, information about currently viewed revision will be printed in status messages. Position and appearance of the messages depends on your theme'),
+    '#description' => t('If enabled, information about currently viewed revision will be printed in status messages. Position and appearance of the messages depends on your theme.'),
     '#default_value' => variable_get('revision_info_messages', 1),
   );
   return system_settings_form($form);  
@@ -426,14 +426,9 @@ if (module_exists('diff')) {
  * @return
  *   themed HTML
  */
-function _show_pending_nodes($op = 'view', $user_filter = -1) {
-  global $user;
-  $moderated_only = user_access('administer nodes') ? -1 : TRUE;
-  $nodes = get_nodes($op, -1,
-    $user_filter == I_CREATED ? $user->uid : -1,
-    $user_filter == I_LAST_MODIFIED ? $user->uid : -1,
-    $moderated_only, TRUE);
-  return theme('nodes_summary', $nodes);
+function _show_pending_nodes($access = 'view', $user_filter = NO_FILTER) {
+  $is_moderated = user_access('administer nodes') ? NO_FILTER : TRUE;
+  return show_accessible_content_summary($access, NO_FILTER, $user_filter, $is_moderated, TRUE);
 }
 
 /**
@@ -675,7 +670,7 @@ function _handle_edit(&$node, $op) {
         break;
     }
   }
-  elseif ($op == 'update' && $node->status) {
+  elseif ($op == 'update' && $node->status && variable_get('revision_info_messages', 1) == 1) {
     drupal_set_message(t('Your changes are now current as moderation is switched off for this content type.'), 'warning', FALSE);
   }
 }
