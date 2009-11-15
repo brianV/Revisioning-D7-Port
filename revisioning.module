@@ -584,9 +584,9 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
     case 'alter':  
       if (module_grants_node_revision_access('view revisions', $node)) {
         if (!$teaser && $node->nid == $args[1]) { // don't show msg on page with many nodes
-          if (variable_get('revision_info_messages', 1) == 1) {
+          if (is_moderated($node->type) && variable_get('revision_info_messages', 1) == 1) {
             drupal_set_message(_get_node_info_msg($node));
-          }  
+          }
         }
       }
       break;
@@ -669,9 +669,6 @@ function _handle_edit(&$node, $op) {
         }
         break;
     }
-  }
-  elseif ($op == 'update' && $node->status && variable_get('revision_info_messages', 1) == 1) {
-    drupal_set_message(t('Your changes are now current as moderation is switched off for this content type.'), 'warning', FALSE);
   }
 }
 
