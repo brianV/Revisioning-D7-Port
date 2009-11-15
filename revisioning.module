@@ -348,7 +348,9 @@ function _revision_tasks_menu_access_callback($op, $node) {
       global $user;
       // Implement 'view revisions of own content' permission, meaning
       // 'view all revisions of content I created the first draft of'.
-      if ($node->uid == $user->uid && user_access('view revisions of own content')) {
+      // Check for 'view is to prevent situation, where user doesn't have 
+      // access to the node but can view it's revisions (if they know URL).
+      if ($node->uid == $user->uid && user_access('view revisions of own content') && module_grants_node_access('view', $node)) {
         return TRUE;
       }
       // Fall back to global 'view revisions' permission.
