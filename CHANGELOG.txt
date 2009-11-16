@@ -85,4 +85,8 @@ o [#513078]:introductiong 'view own revisions' permission.
 =======
 o Rules integration (thanks: crea)
 o Avoid same message being shown twice [#536826] (thanks: dboulet & crea)
+o French translation (thanks: chmoindron), German translation (thanks: tadesse)
+o [#549588] (thanks: crea)
+o [#599802] (thanks: Jaza)
+o [#566292]
 

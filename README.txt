@@ -2,8 +2,8 @@ $Id$
 
 DESCRIPTION
 ===========
-This modules forces new (unpublished) content and edits to current content to
-first go into a queue for review by a moderator/publisher, rather than 
+This modules forces new unpublished content as well as edits to current content
+to first go into a queue for review by a moderator/publisher, rather than
 immediately becoming "live", i.e. visible to the public.
 
 We took our inspiration from the Revision Moderation module by Angie Byron,
@@ -43,13 +43,8 @@ INSTALLATION
    and "New revision in draft, pending moderation" checkboxes. Also in this
    section UNtick "Published", so that all new content is created in an 
    unpubished state, i.e. invisible to the public.
-4. The module creates a new root menu item, named "My content" with three tabs:
-   o "Viewable" shows all nodes that may be viewed by the logged-in user
-   o "Editable" shows all nodes that may be edited by the logged-in user
-   o "Pending", a subset of "Editable" showing nodes that have been revised
-     recently and are awaiting review and publication by an authorised role.
-   These menu options will be visible only to roles that have the "access
-   content summary" permission, as granted by the administrator.
+4. Revisioning builds on the Accessible content menu item, adding the
+   "In draft/Pending publication" filter to the double row of tabs.
 5. Grant to the various roles the view/delete/revert revisions permissions
    (node access section) and the "edit revisions" permission (revisioning
    section). Typically you'd give authors the "view revisions" and
@@ -62,7 +57,7 @@ USAGE
 =====
 You should now be in business. Log in as one of the authors and Create content.
 Save. Log out, then log in as a moderator to publish the content via the
-My content >> Pending tab. Click on the title of the post, then open the 
+Accessile content >> Pending tab. Click on the title of the post, then open the
 desired revision by clicking on the date. Check the content, the press the 
 publish link.
 Note that up to this point content isn't visible to the public.
@@ -86,5 +81,5 @@ with the TAC-Lite and Workflow modules can be found on www.drupal.org.
 
 AUTHOR
 ======
-Rik de Boer for IBS (Melbourne, Australia), inspired by the Revision 
-Moderation module by Angie Byron (www.lullabot.com)
+Rik de Boer, Melbourne, Australia; inspired by the Revision Moderation module
+by Angie Byron (www.lullabot.com)
