@@ -553,7 +553,6 @@ function revisioning_form_node_type_form_alter(&$form, &$form_state) {
  * Implementation of hook_nodeapi().
  */
 function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
-  drupal_set_message("revisioning_nodeapi(op=$op...), published='$node->status'");
   $args = arg();
   switch ($op) {
     case 'prepare':
