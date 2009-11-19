@@ -3,7 +3,7 @@
 
 /**
  * @file
- * Rules integration for Revisioning module
+ * Rules integration for Revisioning module.
  *
  */
 
@@ -34,7 +34,7 @@ function revisioning_rules_condition_info() {
 }
 
 /*
- * Condition: Check for pending revisions of the node
+ * Condition: Check for pending revisions of the node.
  */
 function revisioning_node_has_pending($node, $settings) {
   $pending = _get_number_of_pending_revisions($node->nid);
@@ -45,7 +45,7 @@ function revisioning_node_has_pending($node, $settings) {
 }
 
 /*
- * Condition: Check for pending revisions of the node
+ * Condition: Check for pending revisions of the node.
  */
 function revisioning_condition_revision_is($node, $settings) {
   $type = _revisioning_revision_is($node);
@@ -56,7 +56,7 @@ function revisioning_condition_revision_is($node, $settings) {
 }
 
 /*
- *  Check for content types - Configuration form
+ *  Check for content types - Configuration form.
  *  
  */
 function revisioning_condition_revision_is_form($settings = array(), &$form) {
@@ -71,7 +71,7 @@ function revisioning_condition_revision_is_form($settings = array(), &$form) {
 }
 
 /**
- * Label callback for "revisioning_revision_is" condition
+ * Label callback for "revisioning_revision_is" condition.
  */
 function revisioning_condition_revision_is_label($settings, $argument_labels) {
   $names = array_intersect_key(_revisioning_revision_states(), $settings['revision_type']);
@@ -79,7 +79,7 @@ function revisioning_condition_revision_is_label($settings, $argument_labels) {
 }
 
 /**
- * Label callback for "revisioning_node_has_pending" condition
+ * Label callback for "revisioning_node_has_pending" condition.
  */
 function revisioning_node_has_pending_label($settings, $argument_labels) {
   return t('Content "@node" has pending revision(s)', $argument_labels);
@@ -118,7 +118,7 @@ function revisioning_rules_event_info() {
 }
 
 /**
- * Returns arguments suitable for using it with a node
+ * Returns arguments suitable for using it with a node.
  */
 function _revisioning_rules_event_arguments() {
   return array(
@@ -136,6 +136,16 @@ function _revisioning_rules_event_arguments() {
       'label' => t('content author'),
       'handler' => 'rules_events_argument_node_author'
     ),
+    'target_author' => array(
+      'type' => 'user',
+      'label' => t('target revision author'),
+      'handler' => 'revisioning_events_argument_target_revision_author'
+    ),
+    'current_author' => array(
+      'type' => 'user',
+      'label' => t('current revision author'),
+      'handler' => 'revisioning_events_argument_current_revision_author'
+    ),
     'user' => array(
       'type' => 'user',
       'label' => t('acting user'),
@@ -145,7 +155,29 @@ function _revisioning_rules_event_arguments() {
 }
 
 /**
- * Current revision event argument handler
+ * Current revision author argument handler.
+ */
+function revisioning_events_argument_current_revision_author($node) {
+  $current_vid = get_current_revision_id($node->nid);
+  $uid = $node->revision_uid;
+  if ($node->vid != $current_vid) {
+    $current = node_load($node->nid, $current_vid);
+    $uid = $current->revision_uid;
+  }
+  $user = user_load($uid);
+  return $user;
+}
+
+/**
+ * Target revision author argument handler.
+ */
+function revisioning_events_argument_target_revision_author($node) {
+  $user = user_load($node->revision_uid);
+  return $user;
+}
+
+/**
+ * Current revision event argument handler.
  */
 function revisioning_events_argument_current_revision($node) {
   $current_vid = get_current_revision_id($node->nid);
@@ -157,33 +189,6 @@ function revisioning_events_argument_current_revision($node) {
 }
 
 /********************************* Rules Actions *********************************************/
-
-/**
- * Returns arguments suitable for using it with a node
- */
-function _revisioning_rules_action_arguments() {
-  return array(
-    'node' => array(
-      'type' => 'node', 
-      'label' => t('content')
-    ),
-    'current_revision' => array(
-      'type' => 'node',
-      'label' => t('current revision'),
-      'handler' => 'revisioning_events_argument_current_revision'
-    ),
-    'author' => array(
-      'type' => 'user',
-      'label' => t('content author'),
-      'handler' => 'rules_events_argument_node_author'
-    ),
-    'user' => array(
-      'type' => 'user',
-      'label' => t('acting user'),
-      'handler' => 'rules_events_argument_global_user'
-    ),
-  );
-}
 
 /**
  * Implementation of hook_rules_action_info().
@@ -233,7 +238,7 @@ function revisioning_rules_loaded_current_label($settings, $argument_labels) {
 }
 
 /**
- * Action: load current revision of provided node
+ * Action: load current revision of provided node.
  */
 function revisioning_rules_action_load_current($node) {
   $current_vid = get_current_revision_id($node->nid);
