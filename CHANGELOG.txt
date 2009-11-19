@@ -89,4 +89,7 @@ o French translation (thanks: chmoindron), German translation (thanks: tadesse)
 o [#549588] (thanks: crea)
 o [#599802] (thanks: Jaza)
 o [#566292]
+o Rules integration: added current and target revision author [#575880] (thanks: crea).
+o Updated README.txt
+
 
