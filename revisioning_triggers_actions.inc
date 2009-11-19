@@ -50,10 +50,20 @@ function revisioning_revisioning($op) {
   watchdog('revisioning', '%op trigger is actioning "@aids"', array('%op' => $op, '@aids' => implode(', ', array_keys($aids))));
   global $user;
   $context = array('hook' => 'revisioning', 'op' => $op, 'user' => $user);
+  $node = NULL;
   foreach ($aids as $aid => $action_info) {
     if ($action_info['type'] == 'node') {
       if ((arg(0) == 'node') && is_numeric(arg(1))) {
-        $object = node_load(array('nid' => arg(1)));
+        if (!$node) {
+          // This node has already been modified directly in the database.
+          // Clear the static node_load() cache to ensure we are passing the
+          // updated object to the node actions.
+          $node = node_load(arg(1), NULL, TRUE);
+          if (!$node) {
+            $node = new stdClass;
+          }
+        }
+        $object = $node;
       }
     }
     else {
