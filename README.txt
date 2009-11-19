@@ -37,12 +37,29 @@ INSTALLATION
    highlight the differences.
 1. Place the "revisioning" folder in your "sites/all/modules" directory.
 2. Enable the module under Administer >> Site building >> Modules.
+
+CONFIGURATION
+=============
 3. Under Administer >> Content >> Content types, click "edit" next to the
    content types for which you wish to enable/disable revisioning. Under
    "Workflow Settings", Default Options, tick both the "Create new revision"
    and "New revision in draft, pending moderation" checkboxes. Also in this
    section UNtick "Published", so that all new content is created in an 
    unpubished state, i.e. invisible to the public.
+   "New revision in draft, pending moderation" means that when a user edits and
+   saves a piece of content the new revision isn't automatically made current.
+   The previous copy remains unchanged and visible to the public until the 
+   newer revision is published in its place.
+   There is an additional radio-button on the same page that augments the above
+   behaviour giving you the option to "Only create a new revision when saving
+   content that is not already in draft/pending moderation". This will save you
+   some disk space, because until the draft is published all modifications will
+   be applied to the same copy, i.e. no new revision is created when one 
+   already exists. On the other hand there are situations, for instance with a
+   Wiki page with multiple authors editing the same copy, where you do want 
+   every Save to create a new draft (revision), so that contributors can 
+   compare what was changed between saves. The Diff module is a good addition
+   to Revisioning for this.
 4. Revisioning builds on the Accessible content menu item, adding the
    "In draft/Pending publication" filter to the double row of tabs.
 5. Grant to the various roles the view/delete/revert revisions permissions
@@ -50,8 +67,8 @@ INSTALLATION
    section). Typically you'd give authors the "view revisions" and
    "edit revisions" permissions, while moderators will get the same as well
    as the "publish/revert revisions" permission. Neither require the 
-   "administer nodes" permission, which is a good thing as this gives 
-   excessive rights.
+   "administer nodes" permission, which is a good thing as this gives ordinary
+   users excessive rights.
 
 USAGE
 =====
@@ -65,6 +82,11 @@ Log in as an author again and revise the content. You will notice that upon
 saving the new revision, the one visible to the public remains unchanged.
 Log in as a moderator again to promote (publish), after optional edits, the
 revised content to live.
+As an alternative to the Accessible content menu item, you may want to activate
+the "pending revisions" block. This block is particularly useful for moderators
+as it constantly shows the latest content requiring moderator attention in an 
+inobtrusive corner of the screen. Configure and enable the block like any other
+on the Administer >> Site building >> Blocks page.
 You can use this module in combination with TAC or TAC-Lite for fine-grained
 access control based on vocabularies (such as "region" or "department")
 associated with the various content types. Be aware that any permissions
@@ -76,8 +98,9 @@ the author and moderator roles via access control based on states such as
 "in draft", "in review" and "live". Workflow also allows you to notify users
 when state transitions occur (e.g. when a moderator declines or publishes a
 submitted revision).
-A step-by-step guide on the usage of the Revisioning module in combination
-with the TAC-Lite and Workflow modules can be found on www.drupal.org.
+Step-by-step guides on the usage of the Revisioning module in combination
+with the TAC-Lite and Workflow modules can be found on the Revisioning project
+page http://drupal.org/project/revisioning. 
 
 AUTHOR
 ======
