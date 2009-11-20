@@ -51,9 +51,16 @@ function revisioning_help($path, $arg) {
  * Revisioning permissions. Note that permissions to view, revert and delete
  * revisions already exist in node.module.
  */
-function revisioning_perm() {
-  return array('access Pending tab', 'edit revisions', 'publish revisions', 'unpublish current revision', 'view revisions of own content');
-}
+ function revisioning_perm() {
+  $perms = array("access 'Pending' tab", 'edit revisions', 'publish revisions', 'unpublish current revision');
+  // Implement per-nodetype permissions same way as in node module.
+  foreach (node_get_types() as $type) {
+    $name = check_plain($type->type);
+    $perms[] = 'view revisions of own '. $name .' content';
+    $perms[] = 'view revisions of any '. $name .' content';
+  }
+  return $perms;
+ }
 
 /**
  * Revisioning settings form  
@@ -344,14 +351,21 @@ function _revision_tasks_menu_access_callback($op, $node) {
     case 'view current': 
       return !is_numeric(arg(3)) && module_grants_node_access('view', $node);
 
-    case 'view revisions':
-      global $user;
-      // Implement 'view revisions of own content' permission, meaning
-      // 'view all revisions of content I created the first draft of'.
-      // Check for 'view is to prevent situation, where user doesn't have 
-      // access to the node but can view it's revisions (if they know URL).
-      if ($node->uid == $user->uid && user_access('view revisions of own content') && module_grants_node_access('view', $node)) {
+     case 'view revisions':
+      // 'View' access on node is prerequisite for all "view revisions" permissions
+      if (!module_grants_node_access('view', $node)) {
+        return FALSE;
+      }
+      $name = check_plain($node->type);
+      // Check 'view revisions of any $nodetype content' permission.
+      if (user_access('view revisions of any '. $name .' content')) {
         return TRUE;
+      }
+      // Check 'view revisions of own $node->type content' permission, meaning
+      // 'view all revisions of $node->type content I created the first draft of'.
+      global $user;
+      if ($node->uid == $user->uid && user_access('view revisions of own '. $name .' content')) {
+         return TRUE;
       }
       // Fall back to global 'view revisions' permission.
       break;
