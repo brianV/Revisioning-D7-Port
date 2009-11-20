@@ -52,7 +52,7 @@ function revisioning_help($path, $arg) {
  * revisions already exist in node.module.
  */
  function revisioning_perm() {
-  $perms = array("access 'Pending' tab", 'edit revisions', 'publish revisions', 'unpublish current revision');
+  $perms = array("access Pending tab", 'edit revisions', 'publish revisions', 'unpublish current revision');
   // Implement per-nodetype permissions same way as in node module.
   foreach (node_get_types() as $type) {
     $name = check_plain($type->type);
