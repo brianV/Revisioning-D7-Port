@@ -84,12 +84,13 @@ o [#513078]:introductiong 'view own revisions' permission.
 6.x-2.8
 =======
 o Rules integration (thanks: crea)
+o Rules integration: added current and target revision author [#575880] (thanks: crea).
 o Avoid same message being shown twice [#536826] (thanks: dboulet & crea)
 o French translation (thanks: chmoindron), German translation (thanks: tadesse)
 o [#549588] (thanks: crea)
 o [#599802] (thanks: Jaza)
 o [#566292]
-o Rules integration: added current and target revision author [#575880] (thanks: crea).
 o "view revisions of any/own content type" [#549414] (thanks: crea)
+o [#611988]
 o Updated README.txt
 

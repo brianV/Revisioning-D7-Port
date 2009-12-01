@@ -136,25 +136,17 @@ function revisioning_revisionapi($op, &$node) {
 }
 
 /**
- * Revert node to selected revision and publish node. 
- * 
- * This is same as "revert" operation in Revisioning terms:
- * "core revert" + "publish" = "revisioning revert"
+ * Revert node to selected revision without changing it's publication status.
  * 
  * @param $node:
  *  Target $node object (loaded with target revision) or nid of target node
  * @param $vid:
- *  Optional vid of revision to revert to, if provided $node is not object.
- * 
- * @TODO: Should we give "revisioning revert" better name ? Core "revert" does not 
- * publish node, so this involves some ambiguity, I think.
- *   
+ *  Optional vid of revision to revert to, if provided $node must not be an object.
  */
 function _revisioning_revertpublish_revision(&$node, $vid = NULL) {
   $node_revision = is_object($node) ? $node : node_load($node, $vid);
   module_invoke_all('revisionapi', 'pre revert', $node_revision);
   _revisioning_revert_revision($node_revision);
-  _revisioning_publish_node($node_revision);
   module_invoke_all('revisionapi', 'post revert', $node_revision);
 }
 
@@ -230,15 +222,14 @@ function _revisioning_delete_revision(&$node, $vid = NULL) {
   watchdog('content', '@type: deleted %title revision %revision.', array('@type' => $node_revision->type, '%title' => $node_revision->title, '%revision' => $node_revision->vid));    
 }
 
-
 /**
- * Unpublish revision.
+ * Unpublish revision (i.e. the node).
  * 
- * Function name comes from convention Revisioning uses: since we work with revisions, we think
- * of it as unpublishing revision, even while unpublishing applies to the whole node.
+ * Note that no check is made as to whether the initiating user has permission
+ * to unpublish this node.
  * 
  * @param $node:
- *  Target $node object or nid of target node 
+ *  Target $node object or nid of target node
  * 
  * @TODO: Shouldn't we invoke hook_nodeapi('update'..) too, since we are updating node ? 
  */
@@ -252,9 +243,10 @@ function _revisioning_unpublish_revision(&$node) {
 
 /**
  * Make the supplied revision of the node current and publish it.
+ * It is the caller's responsibility to provide proper revision.
+ * Note that no check is made as to whether the initiating user has permission
+ * to publish this revision.
  * 
- * Currently it's caller responsibility to provide proper revision.
- *
  * @param $node:
  *  Target $node object (loaded with target revision) or nid of target node 
  * @param $vid:
@@ -273,12 +265,16 @@ function _revisioning_publish_revision(&$node, $vid = NULL) {
 }
 
 /**
- * Find the most recent pending revision, make it current, unless it already is, and publish node.
+ * Find the most recent pending revision, make it current, unless it already is
+ * and publish node. 
+ * Note that no check is made as to whether the initiating user has permission
+ * to publish this node.
  *
  * @param $node
  *   The node object whose latest pending revision is to be published
  * @return
- *   TRUE if operation was successful, FALSE if there is no pending revision to publish
+ *   TRUE if operation was successful, FALSE if there is no pending revision to
+ *   publish
  */
 function _revisioning_publish_latest_revision(&$node) {
   // Get latest pending revision or take the current provided it's UNpublished

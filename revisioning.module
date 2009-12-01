@@ -807,17 +807,17 @@ function revisioning_revert_confirm_pre_submit($form, &$form_state) {
  *
  * Note:
  * It would be nice if publish and revert were symmetrical operations and that
- * node_revision_revert_confirm_submit didn't save a copy of the revision (under
- * a new vid), as this has the side-effect of making all "pending" revisions
- * "old". This is because the definition of "pending" is:
- * "node_vid > current_vid".
+ * node_revision_revert_confirm_submit didn't save a physical copy of the 
+ * revision (under a new vid), as this has the side-effect of making all 
+ * "pending" revisions "archived". This is because the definition of "pending"
+ * is: "node_vid > current_vid".
  * It would be better if "pending" relied on a separate flag rather than a field
- * such as vid (or a timestamp) that changes everytime a piece of code executes
- * a node_save.
+ * such as vid or timestamp that changes everytime a piece of code executes
+ * a node_save().
  */
 function revisioning_revert_confirm_post_submit($form, &$form_state) {
   $node = $form['#node_revision'];
-  _revisioning_publish_node($node->nid);
+//_revisioning_publish_node($node->nid); [#611988]
   module_invoke_all('revisionapi', 'post revert', $node);
 }
 
