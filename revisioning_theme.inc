@@ -59,7 +59,9 @@ function revisioning_revisions_summary($form_state, $nid) {
   // theme_revisioning_revisions_summary().
   $form['nid'] = array('#type' => 'value', '#value' => $nid);
 
-  $show_taxonomy_terms = module_exists('taxonomy');
+  $show_taxonomy_terms = module_exists('taxonomy') &&
+    (count(taxonomy_get_vocabularies()) > 0) && variable_get("show_taxonomy_terms", TRUE);
+  
   $revisions = _get_all_revisions_for_node($nid, $show_taxonomy_terms);
 
   $revision_ids = array();
@@ -181,7 +183,8 @@ function theme_revisioning_revisions_summary($form) {
   $revision_ids = element_children($form['info']);
 
   $show_diff = count($revision_ids) >= 2 && module_exists('diff');
-  $show_taxonomy_terms = module_exists('taxonomy');
+  $show_taxonomy_terms = module_exists('taxonomy') &&
+    (count(taxonomy_get_vocabularies()) > 0) && variable_get("show_taxonomy_terms", TRUE);
 
   // Set up the table header
   $header = array(t('Revision'));
@@ -256,8 +259,8 @@ function _theme_revisions_pending_block($nodes) {
   drupal_add_css($css_path, 'module', 'all', FALSE); // also loads /revisioning-rtl.css
   $block = array();
   $block['subject'] = l(t('!num_revisions pending', 
-    array('!num_revisions' => format_plural(count($nodes), '1 revision', '@count revisions'))), 
-    'accessible-content/i-can-edit');
+    array('!num_revisions' => format_plural(count($nodes), '1 revision', '@count revisions'))),
+    'accessible-content');
   $block['content'] = theme('item_list', $links);
   return $block;
 }

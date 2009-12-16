@@ -3,11 +3,11 @@
 
 /**
  * @file
- * Rules integration for Revisioning module.
+ *  Rules integration for Revisioning module.
  *
  */
 
-/********************************* Rules Conditions *****************************************/
+/*************************** Rules Conditions ********************************/
 
 /*
  * Implementation of hook_rules_condition_info().
@@ -34,30 +34,22 @@ function revisioning_rules_condition_info() {
 }
 
 /*
- * Condition: Check for pending revisions of the node.
+ * Condition: check for pending revisions of the node.
  */
 function revisioning_node_has_pending($node, $settings) {
-  $pending = _get_number_of_pending_revisions($node->nid);
-  if ($pending > 0) {
-    return TRUE;
-  }
-  return FALSE;
+  return (_get_number_of_pending_revisions($node->nid) > 0);
 }
 
 /*
- * Condition: Check for pending revisions of the node.
+ * Condition: check for pending revisions of the node.
  */
 function revisioning_condition_revision_is($node, $settings) {
   $type = _revisioning_revision_is($node);
-  if (in_array($type, $settings['revision_type'])) {
-    return TRUE;
-  }
-  return FALSE;
+  return in_array($type, $settings['revision_type']);
 }
 
 /*
- *  Check for content types - Configuration form.
- *  
+ *  Check for content types - configuration form.
  */
 function revisioning_condition_revision_is_form($settings = array(), &$form) {
   $form['settings']['revision_type'] = array(
@@ -85,8 +77,7 @@ function revisioning_node_has_pending_label($settings, $argument_labels) {
   return t('Content "@node" has pending revision(s)', $argument_labels);
 }
 
-
-/********************************* Rules Events *********************************************/
+/************************** Rules Events **************************************/
 
 /**
  * Implementation of hook_rules_event_info().
@@ -124,7 +115,7 @@ function _revisioning_rules_event_arguments() {
   return array(
     'node' => array(
       'type' => 'node',
-      'label' => t('target revision of operation'), 
+      'label' => t('target revision of operation'),
     ),
     'current_revision' => array(
       'type' => 'node',
@@ -188,7 +179,7 @@ function revisioning_events_argument_current_revision($node) {
   return $node;
 }
 
-/********************************* Rules Actions *********************************************/
+/*************************** Rules Actions ************************************/
 
 /**
  * Implementation of hook_rules_action_info().
@@ -197,7 +188,6 @@ function revisioning_rules_action_info() {
   $default = array(
     'module' => 'Revisioning',
   );
-  
   return array(
     'revisioning_rules_action_publish_latest' => $default + array(
       'label' => t('Publish the most recent pending revision'),
@@ -205,7 +195,6 @@ function revisioning_rules_action_info() {
         'node' => array('type' => 'node', 'label' => t('content')),
       ),
     ),
-    
     'revisioning_rules_action_load_current' => $default + array(
       'label' => t('Load current revision of content'),
       'arguments' => array(
@@ -226,7 +215,7 @@ function revisioning_rules_action_info() {
 /**
  * Label callback for "revisioning_rules_action_load_current" action.
  */
-function revisioning_rules_action_load_current_label($settings, $argument_labels) {  
+function revisioning_rules_action_load_current_label($settings, $argument_labels) {
   return t('Load current revision of "@node"', $argument_labels);
 }
 

@@ -81,7 +81,7 @@ o Feature: revisioning for user profiles: install Content Profile; see #480618: 
 =======
 o [#513078]:introductiong 'view own revisions' permission.
 
-6.x-2.8
+6.x-3.0
 =======
 o Rules integration (thanks: crea)
 o Rules integration: added current and target revision author [#575880] (thanks: crea).

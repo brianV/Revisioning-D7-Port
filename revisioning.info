@@ -1,18 +1,5 @@
 ; $Id$
 name = Revisioning
 description = Allows the creation and modification of pre-published, current and archived content while the current revision remains unchanged and publicly visible until the changes have been reviewed by a moderator.
+core = "6.x"
 dependencies[] = module_grants
-core = "6.x"
-
-; Information added by drupal.org packaging script on 2009-05-13
-version = "6.x-2.3"
-core = "6.x"
-project = "revisioning"
-datestamp = "1242175250"
-
-; Information added by drupal.org packaging script on 2009-05-28
-version = "6.x-2.x-dev"
-core = "6.x"
-project = "revisioning"
-datestamp = "1243513792"
-
