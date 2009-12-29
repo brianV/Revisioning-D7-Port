@@ -92,5 +92,7 @@ o [#599802] (thanks: Jaza)
 o [#566292]
 o "view revisions of any/own content type" [#549414] (thanks: crea)
 o [#611988]
+o [#630090]
+o [#666546]
 o Updated README.txt
 

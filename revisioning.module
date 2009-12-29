@@ -13,8 +13,6 @@ require_once drupal_get_path('module', 'revisioning') .'/revisioning_triggers_ac
 require_once drupal_get_path('module', 'revisioning') .'/revisioning_api.inc';
 // Note that we don't include Rules integration file - Rules module does it for us automatically.
 
-define('DIFF_INCLUDE', drupal_get_path('module', 'diff') .'/diff.pages.inc');
-
 define('NEW_REVISION_WHEN_NOT_PENDING', 0);
 define('NEW_REVISION_EVERY_SAVE', 1);
 define('OLDEST_AT_TOP', 0);
@@ -55,7 +53,8 @@ function revisioning_help($path, $arg) {
  */
 function revisioning_perm() {
   $perms = module_exists('module_grants_monitor') ? array('access Pending tab') : array();
-  $perms = array_merge($perms, array("access Pending tab", 'edit revisions', 'publish revisions', 'unpublish current revision'));
+  $perms = array_merge($perms, array('access Pending tab', 'view revision status messages',
+    'edit revisions', 'publish revisions', 'unpublish current revision'));
   // Add per node-type view perms in same way as edit perms of node module.
   foreach (node_get_types() as $type) {
     $name = check_plain($type->type);
@@ -63,20 +62,6 @@ function revisioning_perm() {
     $perms[] = 'view revisions of any '. $name .' content';
   }
   return $perms;
-}
-
-/**
- * Revisioning settings form.
- */
-function revisioning_admin_settings() {
-  $form = array();
-  $form['revision_info_messages'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Print revision information'),
-    '#description' => t('If enabled, information about currently viewed revision will be printed in status messages. Position and appearance of the messages depends on your theme.'),
-    '#default_value' => variable_get('revision_info_messages', 1),
-  );
-  return system_settings_form($form);
 }
 
 /**
@@ -89,16 +74,7 @@ function revisioning_admin_settings() {
 function revisioning_menu() {
   $items = array();
 
-  // Admin settings
-  $items['admin/settings/revisioning'] = array(
-    'title' => 'Revisioning',
-    'description' => 'Change Revisioning settings',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('revisioning_admin_settings'),
-    'access arguments' => array('administer site configuration'),
-  );
-
-  if (!empty($items['accessible-content'])) { // ie. Module Grants Monitor enabled
+  if (module_exists('module_grants_monitor')) {
     // Add a tab to the 'I created' tab (defined in module_grants_monitor.module)
     $items['accessible-content/i-created/pending'] = array(
       'title' => 'In draft/Pending publication',
@@ -407,13 +383,10 @@ function _revision_tasks_menu_access_callback($revision_op, $node) {
  */
 if (module_exists('diff')) {
 
-  if (file_exists(DIFF_INCLUDE)) {
-    require_once DIFF_INCLUDE; // for diff_diffs_show()
-  }
-
   function _compare_to_current_revision($node) {
     $current_revision_id = get_current_revision_id($node->nid);
     $is_pending = ($node->vid > $current_revision_id);
+    module_load_include('inc', 'diff', 'diff.pages'); // for diff_diffs_show()
     // Make sure that latest of the two revisions is on the right
     if ($is_pending) {
       return diff_diffs_show($node, $current_revision_id, $node->vid);
@@ -584,12 +557,10 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
 
     // called just after $node object is fully built for display
     case 'alter':
-      if (module_grants_node_revision_access('view revisions', $node)) {
-        if (!$teaser && $node->nid == $args[1]) { // don't show msg on page with many nodes
-          if (is_moderated($node->type) && variable_get('revision_info_messages', 1) == 1) {
+      if (!$teaser && $node->nid == $args[1] && // don't show msg on page with many nodes
+          is_moderated($node->type) && user_access('view revision status messages') && 
+          module_grants_node_revision_access('view revisions', $node)) {
             drupal_set_message(_get_node_info_msg($node));
-          }
-        }
       }
       break;
 
