@@ -13,6 +13,8 @@ require_once drupal_get_path('module', 'revisioning') .'/revisioning_triggers_ac
 require_once drupal_get_path('module', 'revisioning') .'/revisioning_api.inc';
 // Note that we don't include Rules integration file - Rules module does it for us automatically.
 
+define('DIFF_INCLUDE', drupal_get_path('module', 'diff') .'/diff.pages.inc');
+
 define('NEW_REVISION_WHEN_NOT_PENDING', 0);
 define('NEW_REVISION_EVERY_SAVE', 1);
 define('OLDEST_AT_TOP', 0);
@@ -404,6 +406,11 @@ function _revision_tasks_menu_access_callback($revision_op, $node) {
  * Use diff's compare callback to compare specific revision to the current one
  */
 if (module_exists('diff')) {
+
+  if (file_exists(DIFF_INCLUDE)) {
+    require_once DIFF_INCLUDE; // for diff_diffs_show()
+  }
+
   function _compare_to_current_revision($node) {
     $current_revision_id = get_current_revision_id($node->nid);
     $is_pending = ($node->vid > $current_revision_id);
