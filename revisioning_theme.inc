@@ -46,65 +46,64 @@ function _theme_revisions_summary(&$node) {
  * Return revisions summary table data. If the Diff modules is enabled, the
  * object returned includes a column of checkboxes allowing the user to select
  * two revisions for side-by-side comparison.
- * 
+ *
  * @param $form_state
  * @param $nid, the id of the node
  * @return form containing all data to be themed
  */
 function revisioning_revisions_summary($form_state, $nid) {
   $form = array();
-  
+
   // #type=>'value' form field values will not appear in the HTML. Used to pass
-  // the node id to revisioning_revisions_summary_submit() and 
+  // the node id to revisioning_revisions_summary_submit() and
   // theme_revisioning_revisions_summary().
   $form['nid'] = array('#type' => 'value', '#value' => $nid);
 
   $show_taxonomy_terms = module_exists('taxonomy') &&
     (count(taxonomy_get_vocabularies()) > 0) && variable_get("show_taxonomy_terms", TRUE);
-  
+
   $revisions = _get_all_revisions_for_node($nid, $show_taxonomy_terms);
 
   $revision_ids = array();
   foreach ($revisions as $revision) {
     if (!empty($revision->type)) {
-      // This is the current revision which holds publication status and content type 
+      // This is the current revision, holding publication status and content type
       $content_type = $revision->type;
       $title = $revision->title;
       $published = $revision->status;
     }
     $vid = $revision->vid;
-    $revision_ids[$vid] = ''; // no text next to check box 
+    $revision_ids[$vid] = ''; // no text next to check box
     $base_url = "node/$nid/revisions/$vid";
 
-    // First column: saved date + author    
-    $first_cell = t('Saved !date by !username', 
+    // First column: saved date + author
+    $first_cell = t('Saved !date by !username',
       array('!date' => l(format_date($revision->timestamp, 'small'), "$base_url/view"),
             '!username' => theme('username', $revision)))
       . (empty($revision->log) ? '' : '<p class="revision-log">'. filter_xss($revision->log) .'</p>');
     $form['info'][$vid] = array('#value' => $first_cell);
-    
+
     // Third column: term (2nd column is handled below)
     if ($show_taxonomy_terms) {
       $form['term'][$vid] = array('#value' => $revision->term);
     }
   }
   drupal_set_message(format_plural(count($revisions),
-    '@publication_status @content_type %title has only one revision', 
-    '@publication_status @content_type %title has @count revisions.', 
+    '@publication_status @content_type %title has only one revision',
+    '@publication_status @content_type %title has @count revisions.',
     array(
      '@publication_status' => ($published ? t('Published') : t('Unpublished')),
      '@content_type' => $content_type,
      '%title' => $title,
     )
   ));
-  
   if (count($revisions) >= 2 && module_exists('diff')) {
     // Second column: check-boxes to select two revisions to compare
     $id1 = key($revision_ids);
     next($revision_ids);
     $id2 = key($revision_ids);
     $form['tickbox'] = array(
-      '#type' => 'checkboxes', 
+      '#type' => 'checkboxes',
       '#options' => $revision_ids,
       '#default_value' => array($id1, $id2),
       '#required' => TRUE,
@@ -117,7 +116,7 @@ function revisioning_revisions_summary($form_state, $nid) {
 
 /**
  * Validation for input form to select two revisions.
- * 
+ *
  * @param $form
  * @param $form_state
  * @return void
@@ -133,7 +132,7 @@ function revisioning_revisions_summary_validate($form, &$form_state) {
 
 /**
  * Submit two selected revisions to Diff module.
- * 
+ *
  * @param $form
  * @param $form_state
  * @return void
@@ -158,7 +157,7 @@ function revisioning_revisions_summary_submit($form, &$form_state) {
 
 /**
  * Theme the supplied form.
- * 
+ *
  * Uses the following subthemes:
  * o 'table_revisions', falling back to theme.inc/theme_table() if not defined
  * o 'placeholder' (to display current revision status)
@@ -176,8 +175,8 @@ function theme_revisioning_revisions_summary($form) {
   $node = node_load($form['nid']['#value']);
 
   $css_path = drupal_get_path('module', 'revisioning') .'/revisioning.css';
-  drupal_add_css($css_path, 'module', 'all', FALSE); 
-  
+  drupal_add_css($css_path, 'module', 'all', FALSE);
+
   // Set up the table rows
   $rows = array();
   $revision_ids = element_children($form['info']);
@@ -195,8 +194,8 @@ function theme_revisioning_revisions_summary($form) {
     $header[] = t('Term');
   }
   $header[] = t('Status');
-  
-  $is_initial_unpublished_draft = !$node->status && (count($revision_ids) == 1); 
+
+  $is_initial_unpublished_draft = !$node->status && (count($revision_ids) == 1);
   foreach ($revision_ids as $vid) {
     $row = array();
     // Revision info
@@ -213,7 +212,7 @@ function theme_revisioning_revisions_summary($form) {
     $is_current = ($vid == $node->vid);
     $is_pending = ($vid > $node->vid) || $is_initial_unpublished_draft;
     if ($is_pending) {
-      $row[] = array('data' => t('in draft/pending publication')); 
+      $row[] = array('data' => t('in draft/pending publication'));
     }
     else {
       $row[] = array('data' => $is_current && $node->status ? theme('placeholder', t('current revision (published)')) : t('archived'));
@@ -236,21 +235,21 @@ function theme_revisioning_revisions_summary($form) {
  * the way in which the Revisions table is constructed.
  * If you do, don't forget to register this theme_hook() via <your_module>_theme()
  * in a manner similar to revisioning_theme() in this file.
- * 
+ *
  * @param $header
  * @param $rows
  * @return themed HTML, see for instance /includes/theme.inc/theme_table() and
  *         diff.module/theme_diff_table()
  *
  * @ingroup themeable
- * 
+ *
 function theme_table_revisions($header, $rows) {
 }
  */
 
 function _theme_revisions_pending_block($nodes) {
   $max_num_shown = variable_get('revisioning_block_num_pending', 5);
-  $nodes_to_display = array_slice($nodes, 0, $max_num_shown); 
+  $nodes_to_display = array_slice($nodes, 0, $max_num_shown);
   $links = array();
   foreach ($nodes_to_display as $node) {
     $links[] = l($node->title, "node/$node->nid/revisions/$node->vid/view");
@@ -258,7 +257,7 @@ function _theme_revisions_pending_block($nodes) {
   $css_path = drupal_get_path('module', 'revisioning') .'/revisioning.css';
   drupal_add_css($css_path, 'module', 'all', FALSE); // also loads /revisioning-rtl.css
   $block = array();
-  $block['subject'] = l(t('!num_revisions pending', 
+  $block['subject'] = l(t('!num_revisions pending',
     array('!num_revisions' => format_plural(count($nodes), '1 revision', '@count revisions'))),
     'accessible-content');
   $block['content'] = theme('item_list', $links);

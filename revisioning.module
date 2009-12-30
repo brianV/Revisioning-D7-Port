@@ -8,10 +8,11 @@
  * until the changes have been reviewed by a moderator.
  */
 require_once drupal_get_path('module', 'node') .'/node.pages.inc';
+require_once drupal_get_path('module', 'revisioning') .'/revisioning_api.inc';
+require_once drupal_get_path('module', 'revisioning') .'/revisioning_tokens.inc';
 require_once drupal_get_path('module', 'revisioning') .'/revisioning_theme.inc';
 require_once drupal_get_path('module', 'revisioning') .'/revisioning_triggers_actions.inc';
-require_once drupal_get_path('module', 'revisioning') .'/revisioning_api.inc';
-// Note that we don't include Rules integration file - Rules module does it for us automatically.
+// No need to include Rules integration file - Rules module does it for us automatically.
 
 define('NEW_REVISION_WHEN_NOT_PENDING', 0);
 define('NEW_REVISION_EVERY_SAVE', 1);
@@ -39,7 +40,7 @@ function revisioning_help($path, $arg) {
       $s = t('Showing all <em>pending</em> content you can <em>edit</em>.');
       break;
     case 'accessible-content/i-can-view/pending':
-      $s = t('Showing all content you have at least <em>view</em> access to.');
+      $s = t('Showing all <em>pending</em> content you have at least <em>view</em> access to.');
       break;
   }
   return empty($s) ? '' : '<p>'. $s .'</p>';
@@ -425,7 +426,7 @@ function _present_node($node, $op = 'any') {
  * Implementation of hook_form_alter().
  *
  * Note: for cases where the FORM_ID is known a priori use
- * revisioning_form_FORM_ID_alter().
+ * revisioning_form_FORM_ID_form_alter(), e.g. revisioning_form_node_type_form_alter()
  */
 function revisioning_form_alter(&$form, &$form_state, $form_id) {
   // Alter the Create/Edit form
@@ -448,49 +449,50 @@ function revisioning_form_alter(&$form, &$form_state, $form_id) {
         '#value' => is_moderated($content_type)
       );
     }
+
+    // In addition to node_form_submit() append our own handler to the list.
+    $form['buttons']['submit']['#submit'][] = '_revision_form_submit';
+
+    // Change the meaning of the 'Delete (all revisions)' button when editing
+    // a revision to be the deletion of the viewed revision, rather than the
+    // node.
     $nid = $form['#node']->nid;
     $vid = $form['#node']->vid;
-
-    // When saving a new revision redirect to the revision summary, rather
-    // than "View current" (as that's not the one we've saved).
-    // Note: don't want to do this when Deleting, so this code is in wrong place
-    // Is there a suitable hook we can use?
-    /* @TODO
-    if (user_access('view revisions') && is_moderated($content_type)) {
-      $form['#redirect'] = "node/$nid/revisions";
-    }*/
-    // Change the meaning of the 'Delete' button when editing a revision to be
-    // the deletion of the viewed revision, rather than the node.
     if (isset($form['buttons']['delete']) && user_access('delete revisions') && $vid != get_current_revision_id($nid)) {
       $form['buttons']['delete']['#value'] = 'Delete this revision';
-      $form['buttons']['delete']['#submit'] = array('_revision_delete_submit');
+      $form['buttons']['delete']['#submit'][] = '_revision_delete_submit';
     }
   }
 }
 
 /**
- * Handle the 'Delete this revision' button on the edit form
+ * Handler for the 'Save' button on the edit form.
  *
- * Redirect to revision deletion confirm (as opposed to node deletion confirm).
+ * When saving a new revision we shouldn't redirect to "View current", as
+ * that's not the one we've saved. However at this stage, via the form, we
+ * don't know the vid of the newly created revision, only the vid of the
+ * revision we've just edited.
+ * We need to get latest revision id from the database.
+ */
+function _revision_form_submit($form, &$form_state) {
+  $nid = $form['#node']->nid;
+  $vid = get_latest_revision_id($nid);
+  $form_state['redirect'] = "node/$nid/revisions/$vid/view";
+}
+
+/**
+ * Handler for the 'Delete this revision' button on the edit form.
+ *
+ * Redirect to node/%/revisions/%/delete as opposed to node/%/delete
  */
 function _revision_delete_submit(&$form, &$form_state) {
-  $node = $form['#node'];
-  $form['#redirect'] = "node/$node->nid/revisions/$node->vid/delete";
+  $nid = $form['#node']->nid;
+  $vid = $form['#node']->vid;
+  $form_state['redirect'][0] = "node/$nid/revisions/$vid/delete";
 }
 
 /**
- * Implementation of hook_form_FORM_ID_alter(), see
- * module_grants_node_delete_confirm()
- * This is called when 'Delete' or 'Delete all revisions' is pressed
- */
-function revisioning_form_module_grants_node_delete_confirm_alter(&$form, &$form_state) {
-  $nid = $form['nid']['#value'];
-//The following is already looked after by module_grants_node_delete_confirm()
-//$form['actions']['cancel']['#value'] = l(t('Cancel'), "node/$nid/revisions");
-}
-
-/**
- * Implementation of hook_node_type_form_alter().
+ * Implementation of hook_form_FORM_ID_alter().
  *
  * On content type edit form, add the "New revisions in moderation" tick-box
  * and a couple of radio-boxes to select the new revision and auto-publish
@@ -558,7 +560,7 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
     // called just after $node object is fully built for display
     case 'alter':
       if (!$teaser && $node->nid == $args[1] && // don't show msg on page with many nodes
-          is_moderated($node->type) && user_access('view revision status messages') && 
+          is_moderated($node->type) && user_access('view revision status messages') &&
           module_grants_node_revision_access('view revisions', $node)) {
             drupal_set_message(_get_node_info_msg($node));
       }
@@ -638,7 +640,7 @@ function _handle_edit(&$node, $op) {
         $node->revision = $node->original_revision;
         if (isset($node->original_vid) && $node->original_vid != $node->vid) {
           // Resetting node vid back to its originial value, thus creating pending revision
-          db_query("UPDATE {node} SET vid=%d WHERE nid=%d", $node->original_vid, $node->nid);
+          db_query('UPDATE {node} SET vid=%d WHERE nid=%d', $node->original_vid, $node->nid);
         }
         break;
     }
@@ -678,8 +680,8 @@ function revisioning_publish_confirm($form_state, $node) {
  * Submission handler for the publish_confirm form.
  */
 function revisioning_publish_confirm_submit($form, &$form_state) {
-  $nid   = $form_state['values']['node_id'];
-  $vid   = $form_state['values']['revision'];
+  $nid = $form_state['values']['node_id'];
+  $vid = $form_state['values']['revision'];
   _revisioning_publish_revision($nid, $vid);
   drupal_set_message(t('Revision has been published.'));
   // Redirect to the same page as unpublish and revert
@@ -757,7 +759,6 @@ function revisioning_revert_confirm_pre_submit($form, &$form_state) {
   module_invoke_all('revisionapi', 'pre revert', $node);
 }
 
-
 /**
  * Submission "post" handler for the revert_confirm form.
  *
@@ -820,41 +821,6 @@ function generate_node_links_according_to_permissions($node, $link_type = 0) {
 }
 
 /**
- * Implementation of hook_token_values().
- */
-function revisioning_token_values($type, $object = NULL, $options = array()) {
-  $values = array();
-  switch ($type) {
-    case 'node':
-      $values['vid'] = $object->vid;
-      break;
-
-    case 'op':
-      switch ($object) {
-        case 'publish':
-        case 'revert':
-        case 'unpublish':
-          $node = node_load(array('nid' => arg(1)));
-          $values = node_token_values('node', $node, $options);
-          $values['vid'] = $node->vid;
-      }
-      break;
-  }
-  return $values;
-}
-
-/**
- * Implementation of hook_token_list().
- */
-function revisioning_token_list($type = 'all') {
-  if ($type == 'node' || $type == 'all') {
-    $tokens = array();
-    $tokens['node']['vid'] = t('Node revision ID');
-    return $tokens;
-  }
-}
-
-/**
  * Implementation of hook_block().
  *
  * A block that may be placed on all or selected pages, alterting the user
@@ -905,6 +871,17 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
         }
       }
   }
+}
+
+/**
+ * Get the id of the latest revision belonging to a node.
+ * @param
+ *  $nid, id of the node
+ * @return
+ *  ID of the latest revision.
+ */
+function get_latest_revision_id($nid) {
+  return db_result(db_query('SELECT MAX(vid) FROM {node_revisions} WHERE nid=%d', $nid));
 }
 
 /**
