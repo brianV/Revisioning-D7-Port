@@ -233,14 +233,6 @@ function revisioning_menu() {
     );
   }
 
-  $items['admin/settings/revisioning'] = array(
-    'title' => 'Revisioning',
-    'description' => 'Fine-tune your configuration.',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('revisioning_admin_settings'),
-    'access arguments' => array('administer site configuration'),
-  );
-
   return $items;
 }
 
@@ -295,21 +287,6 @@ function revisioning_menu_alter(&$items) {
   if (module_exists('trigger')) {
     $items['admin/build/trigger/revisioning']['access callback'] = 'trigger_access_check';
   }
-}
-
-/**
- * Menu callback for admin settings.
- */
-function revisioning_admin_settings() {
-
-  $form['revisioning_content_summary_page'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Page to go to when the title of the <em>pending revisions</em> block is clicked'),
-    '#default_value' => variable_get('revisioning_content_summary_page', ''),
-    '#description' => t('When left blank this will default to %accessible_content, provided Module Grants Montior is enabled and the user has sufficient permissions. Otherwise %admin_content is used, subject to permissions.',
-                        array('%accessible_content' => 'accessible-content', '%admin_content' => 'admin/content/node'))
-  );
-  return system_settings_form($form);
 }
 
 /**
@@ -847,8 +824,8 @@ function generate_node_links_according_to_permissions($node, $link_type = 0) {
  * Implementation of hook_block().
  *
  * A block that may be placed on all or selected pages, alterting the user
- * (moderator) when new content has been submitted for review. Shows as a
- * series of up to 5 links the titles of pending revisions.
+ * (moderator) when new content has been submitted for review. Shows titles
+ * of pending revisions as a series of links (max. number configurable).
  * Clicking a link takes the moderator straight to the revision in question.
  */
 function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
@@ -878,11 +855,19 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
         '#default_value' => variable_get('revisioning_block_order', OLDEST_AT_TOP),
         '#description' => t('Note: order is based on revision timestamps.')
       );
+      $form['revisioning_content_summary_page'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Page to go to when the block title is clicked'),
+        '#default_value' => variable_get('revisioning_content_summary_page', ''),
+        '#description' => t('When left blank this will default to %accessible_content, provided Module Grants Montior is enabled and the user has sufficient permissions. Otherwise %admin_content is used, subject to permissions. For any of this to work the above <strong>Block title</strong> field must be left blank.',
+                             array('%accessible_content' => 'accessible-content', '%admin_content' => 'admin/content/node'))
+      );
       return $form;
 
     case 'save':
       variable_set('revisioning_block_num_pending', (int)$edit['revisioning_block_num_pending']);
       variable_set('revisioning_block_order', (int)$edit['revisioning_block_order']);
+      variable_set('revisioning_content_summary_page', $edit['revisioning_content_summary_page']);
       break;
 
     case 'view':
