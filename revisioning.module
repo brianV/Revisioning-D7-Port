@@ -233,6 +233,14 @@ function revisioning_menu() {
     );
   }
 
+  $items['admin/settings/revisioning'] = array(
+    'title' => 'Revisioning',
+    'description' => 'Fine-tune your configuration.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('revisioning_admin_settings'),
+    'access arguments' => array('administer site configuration'),
+  );
+
   return $items;
 }
 
@@ -287,6 +295,21 @@ function revisioning_menu_alter(&$items) {
   if (module_exists('trigger')) {
     $items['admin/build/trigger/revisioning']['access callback'] = 'trigger_access_check';
   }
+}
+
+/**
+ * Menu callback for admin settings.
+ */
+function revisioning_admin_settings() {
+
+  $form['revisioning_content_summary_page'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Page to go to when the title of the <em>pending revisions</em> block is clicked'),
+    '#default_value' => variable_get('revisioning_content_summary_page', ''),
+    '#description' => t('When left blank this will default to %accessible_content, provided Module Grants Montior is enabled and the user has sufficient permissions. Otherwise %admin_content is used, subject to permissions.',
+                        array('%accessible_content' => 'accessible-content', '%admin_content' => 'admin/content/node'))
+  );
+  return system_settings_form($form);
 }
 
 /**
@@ -492,7 +515,7 @@ function _revision_delete_submit(&$form, &$form_state) {
 }
 
 /**
- * Implementation of hook_form_FORM_ID_alter().
+ * Implementation of hook_form_FORM_ID_form_alter().
  *
  * On content type edit form, add the "New revisions in moderation" tick-box
  * and a couple of radio-boxes to select the new revision and auto-publish
@@ -706,11 +729,11 @@ function revisioning_unpublish_confirm($form_state, $node) {
  * Submission handler for the unpublish_confirm form.
  */
 function revisioning_unpublish_confirm_submit($form, &$form_state) {
-  $nid   = $form_state['values']['node_id'];
-  $title = check_plain($form_state['values']['title']);
-  $type  = check_plain($form_state['values']['type']);
+  $nid = $form_state['values']['node_id'];
   _revisioning_unpublish_revision($nid);
-  drupal_set_message(t('%title has been unpublished.', array('%title' => $title)));
+//$type = $form_state['values']['type']; // machine name, eg. 'story' rather than 'Story'
+  $title = $form_state['values']['title'];
+  drupal_set_message(t('%title is no longer publicly visible.', array('%title' => $title)));
   // Redirect to the same page as publish and revert
   $form_state['redirect'] = "node/$nid/revisions";
 }

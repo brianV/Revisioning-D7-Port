@@ -18,6 +18,8 @@ function revisioning_install() {
 function revisioning_uninstall() {
   variable_del('revisioning_block_num_pending');
   variable_del('revisioning_block_order');
+  variable_del('revisioning_content_summary_page');
+  // Remove 'revision_moderation' from all node_options_<content_type> variables
   foreach (node_get_types() as $type) {
     $variable_name = 'node_options_'. $type->type;
     if ($node_options = variable_get($variable_name, NULL)) {

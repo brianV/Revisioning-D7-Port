@@ -252,14 +252,24 @@ function _theme_revisions_pending_block($nodes) {
   $nodes_to_display = array_slice($nodes, 0, $max_num_shown);
   $links = array();
   foreach ($nodes_to_display as $node) {
-    $links[] = l($node->title, "node/$node->nid/revisions/$node->vid/view");
+    $vid = get_latest_revision_id($node->nid);
+    $links[] = l($node->title, "node/$node->nid/revisions/$vid/view");
   }
   $css_path = drupal_get_path('module', 'revisioning') .'/revisioning.css';
   drupal_add_css($css_path, 'module', 'all', FALSE); // also loads /revisioning-rtl.css
   $block = array();
+  $title_link = trim(variable_get('revisioning_content_summary_page', ''));
+  if (empty($title_link)) {
+    if (module_exists('module_grants_monitor') && user_any_access(module_grants_monitor_perm())) {
+      $title_link = 'accessible-content';
+    }
+    else {
+      $title_link = 'admin/content/node';
+    }
+  }
   $block['subject'] = l(t('!num_revisions pending',
     array('!num_revisions' => format_plural(count($nodes), '1 revision', '@count revisions'))),
-    'accessible-content');
+    $title_link);
   $block['content'] = theme('item_list', $links);
   return $block;
 }
