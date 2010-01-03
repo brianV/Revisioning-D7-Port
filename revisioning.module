@@ -7,16 +7,22 @@
  * content while the current revision remains unchanged and publicly visible
  * until the changes have been reviewed by a moderator.
  */
-require_once drupal_get_path('module', 'node') .'/node.pages.inc';
 require_once drupal_get_path('module', 'revisioning') .'/revisioning_api.inc';
-require_once drupal_get_path('module', 'revisioning') .'/revisioning_tokens.inc';
 require_once drupal_get_path('module', 'revisioning') .'/revisioning_theme.inc';
+require_once drupal_get_path('module', 'revisioning') .'/revisioning_tokens.inc';
 require_once drupal_get_path('module', 'revisioning') .'/revisioning_triggers_actions.inc';
 // No need to include Rules integration file - Rules module does it for us automatically.
 
+define('VIEW_CURRENT', 0); // node/%node/view opens current revision
+define('VIEW_LATEST',  1); // node/%node/view opens latest revison
+
+define('EDIT_CURRENT', 0); // node/%node/edit opens current revision
+define('EDIT_LATEST',  1); // node/%node/edit opens latest revison
+
 define('NEW_REVISION_WHEN_NOT_PENDING', 0);
 define('NEW_REVISION_EVERY_SAVE', 1);
-define('OLDEST_AT_TOP', 0);
+
+define('OLDEST_AT_TOP', 0); // Pertains to pending revisons block
 define('NEWEST_AT_TOP', 1);
 
 /**
@@ -70,7 +76,6 @@ function revisioning_perm() {
  *
  * Define new menu items.
  * Existing menu items are modified through hook_menu_alter().
- * @todo add "In draft" tab
  */
 function revisioning_menu() {
   $items = array();
@@ -118,7 +123,7 @@ function revisioning_menu() {
     );
   }
 
-  // Callback to allow users to unpublish a node
+  // Callback (not a tab) to allow users to unpublish a node
   $items['node/%node/unpublish'] = array(
   //'title' => t(Unpublish current revision'),
     'page callback' => 'drupal_get_form',
@@ -128,20 +133,21 @@ function revisioning_menu() {
     'type' => MENU_CALLBACK,
   );
 
-  // Revision local tasks.
-  // Define revision operations like 'node/%node/revisions/%vid/<op>' in the
-  // form of secondary local tasks (tabs) of the 'node/%node/revisions'
-  // primary local task/tab.
+  // Revision tab local subtasks (i.e. secondary tabs), up to 7 of them:
+  //  view, edit, publish, unpublish, revert, delete and compare.
+  // All revision operations 'node/%node/revisions/%vid/<op>' are defined as
+  // local tasks (tabs) secondary to the primary 'node/%node/revisions' local
+  // task (tab).
   // The tricky part is to always set "tab_parent", core does NOT figure this
-  // out based on the URL. %vid is optional: vid_to_arg() deals with it.
+  // out based on the URL. %vid is optional, see vid_to_arg().
   // Note: the MENU_DEFAULT_LOCAL_TASK for 'node/%node/revisions' is defined in
-  //       revisioning_menu_alter()
+  //       function revisioning_menu_alter()
 
-  // View revision local task
+  // View revision local subtask
   $items['node/%node/revisions/%vid/view'] = array(
     'title' => 'View',
     'load arguments' => array(3),
-    'page callback' => 'node_page_view',
+    'page callback' => '_revision_view',
     'page arguments' => array(1),
     'access callback' => '_revision_tasks_menu_access_callback',
     'access arguments' => array('view revisions', 1),
@@ -149,13 +155,13 @@ function revisioning_menu() {
     'weight' => -10,
     'tab_parent' => 'node/%/revisions',
   );
-  // Edit revision local task
+  // Edit revision local subtask
   $items['node/%node/revisions/%vid/edit'] = array(
     'title' => 'Edit',
     'load arguments' => array(3),
     'page callback' => '_revision_edit',
     'page arguments' => array(1),
-    'access callback' => 'module_grants_node_revision_access',
+    'access callback' => '_revision_tasks_menu_access_callback',
     'access arguments' => array('edit revisions', 1),
     'file' => 'node.pages.inc',
     'file path' => drupal_get_path('module', 'node'),
@@ -163,7 +169,7 @@ function revisioning_menu() {
     'weight' => -7,
     'tab_parent' => 'node/%/revisions',
   );
-  // Publish revision local task
+  // Publish revision local subtask
   $items['node/%node/revisions/%vid/publish'] = array(
     'title' => 'Publish this',
     'load arguments' => array(3),
@@ -175,7 +181,7 @@ function revisioning_menu() {
     'weight' => -4,
     'tab_parent' => 'node/%/revisions',
   );
-  // Unpublish node local task
+  // Unpublish node local subtask
   $items['node/%node/revisions/%vid/unpublish'] = array(
     'title' => 'Unpublish this',
     'load arguments' => array(3),
@@ -187,7 +193,7 @@ function revisioning_menu() {
     'weight' => -3,
     'tab_parent' => 'node/%/revisions',
   );
-  // Revert to selected revision local task.
+  // Revert to revision local subtask.
   // Difference from core version is %vid that's served by vid_to_arg() function.
   $items['node/%node/revisions/%vid/revert'] = array(
     'title' => 'Revert to this',
@@ -202,7 +208,7 @@ function revisioning_menu() {
     'weight' => -2,
     'tab_parent' => 'node/%/revisions',
   );
-  // Delete revision local task.
+  // Delete revision local subtask.
   // Difference from core version is %vid that's served by vid_to_arg() function.
   $items['node/%node/revisions/%vid/delete'] = array(
     'title' => 'Delete',
@@ -218,7 +224,7 @@ function revisioning_menu() {
     'tab_parent' => 'node/%/revisions',
   );
 
-  // If Diff module is enabled, provide compare local task which will use Diff's callback
+  // If Diff module is enabled, provide a compare local subtask
   if (module_exists('diff')) {
     $items['node/%node/revisions/%vid/compare'] = array(
       'title' => 'Compare to current',
@@ -233,6 +239,15 @@ function revisioning_menu() {
     );
   }
 
+  // Finally, the Revisioning configuration menu item
+  $items['admin/settings/revisioning'] = array(
+    'title' => 'Revisioning',
+    'description' => 'Configure how links to view and edit content behave.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('revisioning_admin_settings'),
+    'access arguments' => array('administer site configuration'),
+  );
+
   return $items;
 }
 
@@ -244,35 +259,61 @@ function revisioning_menu() {
  */
 function revisioning_menu_alter(&$items) {
 
-  $items['node/%node/view']['access callback'] = '_revision_tasks_menu_access_callback';
-  $items['node/%node/view']['access arguments'] = array('view current', 1);
+  // Primary tabs for 'node/%node': View tab, Edit tab, Revisions tab ...
 
-  $items['node/%node/edit']['access callback'] = '_revision_tasks_menu_access_callback';
-  $items['node/%node/edit']['access arguments'] = array('edit current', 1);
+  // View tab can be either 'View current' or 'View latest'.
+  // It should be suppressed when the 'Revisions' tab shows the same revision,
+  // so we need a special access callback for this, which expands on the
+  // callback defined in Module Grants.
+  $items['node/%node']['access callback']  = $items['node/%node/view']['access callback'] = '_revisioning_view_edit_access_callback';
+  $items['node/%node']['access arguments'] = $items['node/%node/view']['access arguments'] = array('view revisions', 1);
+  if ((int)variable_get('revisioning_view_callback', VIEW_CURRENT) == VIEW_LATEST) {
+    $items['node/%node']['page callback']  = $items['node/%node/view']['page callback'] = '_revision_view';
+    $items['node/%node']['page arguments'] = $items['node/%node/view']['page arguments'] = array(1, TRUE); // $load_latest
+  }
+  else { // VIEW_CURRENT
+    // use the default page callback, which is node_page_view()
+  }
+  $items['node/%node']['title callback']  = $items['node/%node/view']['title callback'] = '_title_for_view_tab';
+  $items['node/%node']['title arguments'] = $items['node/%node/view']['title arguments'] = array(1);
 
-  // "Revisions" tab remains but points to new page callback, allowing users to
+  // Edit tab can be either 'Edit current' or 'Edit latest'.
+  // It should be suppressed when the 'Revisions' tab shows the same revision,
+  // so we need a special access callback for this, which expands on the
+  // callback defined in Module Grants.
+  $items['node/%node/edit']['access callback'] = '_revisioning_view_edit_access_callback';
+  $items['node/%node/edit']['access arguments'] = array('edit revisions', 1);
+  if ((int)variable_get('revisioning_edit_callback', EDIT_CURRENT) == EDIT_LATEST) {
+    $items['node/%node/edit']['page callback'] = '_revision_edit';
+    $items['node/%node/edit']['page arguments'] = array(1, TRUE);
+  }
+  else { // EDIT_CURRENT
+    // use the default page callback, which is node_page_edit()
+  }
+  $items['node/%node/edit']['title callback'] = '_title_for_edit_tab';
+  $items['node/%node/edit']['title arguments'] = array(1);
+
+  // 'Revisions' tab remains but points to new page callback, allowing users to
   // pick the revision to view, edit, publish, revert, unpublish, delete.
   $items['node/%node/revisions']['page callback'] = '_present_node';
   $items['node/%node/revisions']['page arguments'] = array(1);
-  $items['node/%node/revisions']['access callback'] = '_revision_tasks_menu_access_callback';
-  $items['node/%node/revisions']['access arguments'] = array('view revisions', 1);
 
   // Unset old menu items defined in node.module, as these are replaced by
-  // ones that use the %vid wildcard instead of %
+  // ones that use the %vid wildcard instead of % and have proper callbacks.
   unset($items['node/%node/revisions/%/view']);
   unset($items['node/%node/revisions/%/revert']);
   unset($items['node/%node/revisions/%/delete']);
 
   if (module_exists('diff')) {
     // If Diff module is enabled, make sure it uses correct access callback
-    $items['node/%node/revisions/view/%/%']['access callback'] = '_revision_tasks_menu_access_callback';
+    $items['node/%node/revisions/view/%/%']['access callback'] = 'module_grants_node_revision_access';
     $items['node/%node/revisions/view/%/%']['access arguments'] = array('view revisions', 1);
   }
   // This is here rather than in revisioning_menu() as Diff may redefine
   // the node/%node/revisions/list item.
   $items['node/%node/revisions/list'] = array(
     'title' => 'List all revisions',
-    'access callback' => '_revision_tasks_menu_access_callback',
+    'access callback' => 'module_grants_node_revision_access',
     'access arguments' => array('view revisions', 1),
     'file' => 'node.pages.inc',
     'file path' => drupal_get_path('module', 'node'),
@@ -292,48 +333,84 @@ function revisioning_menu_alter(&$items) {
 /**
  * Perform path manipulations for menu items containing %vid wildcard.
  *
- * Experimental: when vid is absent, set $map as empty array. This seem to disable menu items which require
- * vid context to work. So on the page "node/123/revisions" we don't see menu tasks like "node/123/revisions/%/edit".
- * This menu stuff is badly documented so we probably need some menu system guru to review it.
+ * Experimental: when vid is absent, return $map as empty array. This seems to
+ * disable menu items which require vid context to work. So on the page
+ * "node/123/revisions" we don't see tasks like "node/123/revisions/%/edit".
  *
- * Another possible behavior (commented lines) could be: substitute empty revision id with current revision id.
- * In that case we would also need to change titles (via title callback) to indicate target of task.
- * For example: we would need to change "Edit revision" to "Edit current revision". Without changing
- * menu titles it would be bad user experience.
+ * Another possible behavior (commented lines) could be: substitute empty
+ * revision id with current revision id. In that case we should also change
+ * titles (via title callback) for an enhanced user experience.
+ * For example: we would could change "Edit" to "Edit current revision".
  *
- * Both approaches could work. See #500864 on Drupal.org
- *
+ * Both approaches could work. See http://drupal.org/node/500864
  */
 function vid_to_arg($arg, &$map, $index) {
   if (empty($arg)) {
-    //$nid = $map[1];
-    //return get_current_revision_id($nid);
+    //return get_current_revision_id($nid = $map[1]);
     $map = array();
     return '';
   }
   return $arg;
 }
 
+function _title_for_view_tab($node) {
+  return !is_moderated($node->type) // alt: get_number_of_revisions($node->nid) == 1
+    ? t('View')
+    : ((int)variable_get('revisioning_view_callback', VIEW_CURRENT) == VIEW_CURRENT ? t('View current') : t('View latest'));
+}
+
+function _title_for_edit_tab($node) {
+  return !is_moderated($node->type) // alt: get_number_of_revisions($node->nid) == 1
+    ? t('Edit')
+    : ((int)variable_get('revisioning_edit_callback', EDIT_CURRENT) == EDIT_CURRENT ? t('Edit current') : t('Edit latest'));
+}
+
 /**
- * Menu access callback for the displayed revision's local tasks.
+ * Access callback for the 'View current/latest' and 'Edit current/latest'
+ * primary tabs.
+ * Actual content access control is delegated to Module Grants. This function
+ * just adds checking of the conditions under which the primary tabs should
+ * appear.
+ * The 'View current' and/or 'Edit current' tabs are suppressed when the current
+ * revision is already displayed via one of the Revisions subtabs.
+ * The 'View latest' and/or 'Edit latest' tabs are suppressed when the latest
+ * revision is already displayed via one of the Revisions subtabs.
+ */
+function _revisioning_view_edit_access_callback($revision_op, $node) {
+  $present_view_current_tab = (int)variable_get('revisioning_view_callback', VIEW_CURRENT) == VIEW_CURRENT;
+  $present_edit_current_tab = (int)variable_get('revisioning_edit_callback', EDIT_CURRENT) == EDIT_CURRENT;
+  $view_op = $revision_op == 'view revisions';
+  $edit_op = $revision_op == 'edit revisions';
+  $vid = arg(3);
+  if ($vid == get_current_revision_id($node->nid)) { // displaying current
+    if (($view_op && $present_view_current_tab) || ($edit_op && $present_edit_current_tab)) {
+      // Suppress 'View current' and 'Edit current' primary tabs
+      return FALSE;
+    }
+  }
+  elseif ($vid == get_latest_revision_id($node->nid)) { // displaying latest
+    $present_view_latest_tab = !$present_view_current_tab;
+    $present_edit_latest_tab = !$present_edit_current_tab;
+    if (($view_op && $present_view_latest_tab) || ($edit_op && $present_edit_latest_tab)) {
+      // Suppress 'View latest' and 'Edit latest' primary tabs
+      return FALSE;
+    }
+  }
+  return module_grants_node_revision_access($revision_op, $node);
+}
+
+/**
+ * Menu access callback for the local tasks pertaining to the viewed revision.
  *
  * Actual content access control is delegated to Module Grants. This function
- * just adds checking of the conditions under which the local tasks (tabs)
- * should appear.
+ * just adds checking of the conditions under which the secondary tasks (tabs
+ * under the Revisions tab) should appear.
  */
 function _revision_tasks_menu_access_callback($revision_op, $node) {
   $current_revision_id = get_current_revision_id($node->nid);
   $is_current = ($node->vid == $current_revision_id);
   $is_pending = ($node->vid > $current_revision_id);
-
   switch ($revision_op) {
-    // Suppress 'View curent' and 'Edit current' tabs on pages with URL of the
-    // form 'node/%/revisions/%vid/..., i.e. where %vid exists and is numeric.
-    case 'view current':
-      return !is_numeric(arg(3)) && module_grants_node_access('view', $node);
-
-    case 'edit current':
-      return !is_numeric(arg(3)) && module_grants_node_access('update', $node);
 
     case 'compare revisions':
       if ($is_current) {
@@ -379,6 +456,28 @@ function _revision_tasks_menu_access_callback($revision_op, $node) {
   return module_grants_node_revision_access($revision_op, $node);
 }
 
+function revisioning_admin_settings() {
+  $form['revisioning_view_and_edit_links'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Configure how links to view and edit content behave '),
+  );
+  $form['revisioning_view_and_edit_links']['revisioning_view_callback'] = array(
+    '#type' => 'radios',
+    '#title' => t('Links to view content default to'),
+    '#options' => array(t('displaying the current revision'), t('displaying the latest revision')),
+    '#default_value' => variable_get('revisioning_view_callback', VIEW_CURRENT),
+    '#description' => t('The first option represents default core behaviour.')
+  );
+  $form['revisioning_view_and_edit_links']['revisioning_edit_callback'] = array(
+    '#type' => 'radios',
+    '#title' => t('Links to edit content default to'),
+    '#options' => array(t('editing the current revision'), t('editing the latest revision')),
+    '#default_value' => variable_get('revisioning_edit_callback', EDIT_CURRENT),
+    '#description' => t('The first option represents default core behaviour.')
+  );
+  return system_settings_form($form);
+}
+
 /**
  * Use diff's compare callback to compare specific revision to the current one
  */
@@ -409,7 +508,11 @@ if (module_exists('diff')) {
  */
 function _show_pending_nodes($access = 'view', $user_filter = NO_FILTER) {
   $is_moderated = user_access('administer nodes') ? NO_FILTER : TRUE;
-  return show_accessible_content_summary($access, NO_FILTER, $user_filter, $is_moderated, TRUE);
+  $content_summary = show_accessible_content_summary($access, NO_FILTER, $user_filter, $is_moderated, TRUE);
+  if (user_access('view revision status messages') && strpos($content_summary, 'No content') === FALSE && !user_access('administer nodes')) {
+    _set_info_message();
+  }
+  return $content_summary;
 }
 
 /**
@@ -471,13 +574,14 @@ function revisioning_form_alter(&$form, &$form_state, $form_id) {
  * When saving a new revision we shouldn't redirect to "View current", as
  * that's not the one we've saved. However at this stage, via the form, we
  * don't know the vid of the newly created revision, only the vid of the
- * revision we've just edited.
- * We need to get latest revision id from the database.
+ * revision we've just edited, so we get latest revision id from the database.
  */
 function _revision_form_submit($form, &$form_state) {
   $nid = $form['#node']->nid;
-  $vid = get_latest_revision_id($nid);
-  $form_state['redirect'] = "node/$nid/revisions/$vid/view";
+  if (!empty($nid)) { // don't redirect when creating new node
+    $vid = get_latest_revision_id($nid);
+    $form_state['redirect'] = "node/$nid/revisions/$vid/view";
+  }
 }
 
 /**
@@ -648,17 +752,47 @@ function _handle_edit(&$node, $op) {
 }
 
 /**
- * Menu callback; edit revision.
+ * Menu callback to view a revision.
+ *
+ * Normally called when URLs of the format 'node/%node/revisions/%vid/view'
+ * are clicked, this may also be used for URLs like 'node/%node/view'.
+ * In the latter case the we either load the current revision (default) or
+ * the latest, as specified by the second argument.
  */
-function _revision_edit($node) {
+function _revision_view($node, $load_latest = FALSE) {
+  $latest_vid = get_latest_revision_id($node->nid);
+  if ($load_latest && $latest_vid != $node->vid) {
+    $node = node_load($node->nid, $latest_vid);
+  }
+  // In node.module, node_page_view() is used to display the current, while
+  // node_show() is user for any ohter revision. node_page_view() first sets
+  // the title (as above) and then calls node_show(), surpressesing the
+  // message that tells that we're viewing a revision, which is what we're
+  // doing here also for the case of a revision.
+  return node_page_view($node);
+}
+
+/**
+ * Menu callback to edit a revision.
+ *
+ * Normally called when URLs of the format 'node/%node/revisions/%vid/edit'
+ * are clicked, this may also be used for URLs like 'node/%node/edit'.
+ * In the latter case the we either load the current revision (default) or
+ * the latest, as specified by the second argument.
+ */
+function _revision_edit($node, $load_latest = FALSE) {
   // Use the admin theme if the user specified this for node edit pages
   if (variable_get('node_admin_theme', FALSE)) {
     global $theme, $custom_theme;
     $custom_theme = variable_get('admin_theme', $theme);
   }
+  $latest_vid = get_latest_revision_id($node->nid);
+  if ($load_latest && $latest_vid != $node->vid) {
+    $node = node_load($node->nid, $latest_vid);
+  }
+  // Following is the same as node_page_edit().
   drupal_set_title(check_plain($node->title));
-  $form = drupal_get_form($node->type .'_node_form', $node);
-  return $form;
+  return drupal_get_form($node->type .'_node_form', $node);
 }
 
 /**
@@ -860,7 +994,7 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
         '#title' => t('Page to go to when the block title is clicked'),
         '#default_value' => variable_get('revisioning_content_summary_page', ''),
         '#description' => t('When left blank this will default to %accessible_content, provided Module Grants Montior is enabled and the user has sufficient permissions. Otherwise %admin_content is used, subject to permissions. For any of this to work the above <strong>Block title</strong> field must be left blank.',
-                             array('%accessible_content' => 'accessible-content', '%admin_content' => 'admin/content/node'))
+          array('%accessible_content' => 'accessible-content', '%admin_content' => 'admin/content/node'))
       );
       return $form;
 
@@ -873,7 +1007,7 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
     case 'view':
       if (user_access('view revisions')) {
         $order = variable_get('revisioning_block_order', OLDEST_AT_TOP) == OLDEST_AT_TOP ? 'ASC' : 'DESC';
-        $nodes = get_nodes('update', NO_FILTER, NO_FILTER, NO_FILTER, TRUE, TRUE, 100, FALSE, 'timestamp '. $order);
+        $nodes = get_nodes('update', NO_FILTER, NO_FILTER, NO_FILTER, TRUE, TRUE, 100, 'timestamp '. $order);
         if (!empty($nodes)) {
           return _theme_revisions_pending_block($nodes);
         }
@@ -890,6 +1024,23 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
  */
 function get_latest_revision_id($nid) {
   return db_result(db_query('SELECT MAX(vid) FROM {node_revisions} WHERE nid=%d', $nid));
+}
+
+function _set_info_message() {
+  if (!user_access('publish revisions')) {
+    return;
+  }
+  $moderated_types = array();
+  foreach (node_get_types() as $type) {
+    if (is_moderated($type->type)) {
+      $moderated_types[] = $type->name; // $type->name ?
+    }
+  }
+  if (count($moderated_types) == 0) {
+    return;
+  }
+  drupal_set_message(t('You have permission to publish revisions of type(s): %moderated_types.',
+    array('%moderated_types' => implode(', ', $moderated_types))));
 }
 
 /**
