@@ -354,13 +354,13 @@ function vid_to_arg($arg, &$map, $index) {
 }
 
 function _title_for_view_tab($node) {
-  return !is_moderated($node->type) // alt: get_number_of_revisions($node->nid) == 1
+  return get_number_of_revisions($node->nid) == 1
     ? t('View')
     : ((int)variable_get('revisioning_view_callback', VIEW_CURRENT) == VIEW_CURRENT ? t('View current') : t('View latest'));
 }
 
 function _title_for_edit_tab($node) {
-  return !is_moderated($node->type) // alt: get_number_of_revisions($node->nid) == 1
+  return get_number_of_revisions($node->nid) == 1
     ? t('Edit')
     : ((int)variable_get('revisioning_edit_callback', EDIT_CURRENT) == EDIT_CURRENT ? t('Edit current') : t('Edit latest'));
 }
@@ -377,23 +377,25 @@ function _title_for_edit_tab($node) {
  * revision is already displayed via one of the Revisions subtabs.
  */
 function _revisioning_view_edit_access_callback($revision_op, $node) {
-  $present_view_current_tab = (int)variable_get('revisioning_view_callback', VIEW_CURRENT) == VIEW_CURRENT;
-  $present_edit_current_tab = (int)variable_get('revisioning_edit_callback', EDIT_CURRENT) == EDIT_CURRENT;
-  $view_op = $revision_op == 'view revisions';
-  $edit_op = $revision_op == 'edit revisions';
-  $vid = arg(3);
-  if ($vid == get_current_revision_id($node->nid)) { // displaying current
-    if (($view_op && $present_view_current_tab) || ($edit_op && $present_edit_current_tab)) {
-      // Suppress 'View current' and 'Edit current' primary tabs
-      return FALSE;
+  $vid = arg(3); // may return void or non-number eg. "node/1234/revisions/list"
+  if (is_numeric($vid)) {
+    $present_view_current_tab = (int)variable_get('revisioning_view_callback', VIEW_CURRENT) == VIEW_CURRENT;
+    $present_edit_current_tab = (int)variable_get('revisioning_edit_callback', EDIT_CURRENT) == EDIT_CURRENT;
+    $view_op = $revision_op == 'view revisions';
+    $edit_op = $revision_op == 'edit revisions';
+    if ($vid == get_current_revision_id($node->nid)) { // displaying current
+      if (($view_op && $present_view_current_tab) || ($edit_op && $present_edit_current_tab)) {
+        // Suppress 'View current' and 'Edit current' primary tabs
+        return FALSE;
+      }
     }
-  }
-  elseif ($vid == get_latest_revision_id($node->nid)) { // displaying latest
-    $present_view_latest_tab = !$present_view_current_tab;
-    $present_edit_latest_tab = !$present_edit_current_tab;
-    if (($view_op && $present_view_latest_tab) || ($edit_op && $present_edit_latest_tab)) {
-      // Suppress 'View latest' and 'Edit latest' primary tabs
-      return FALSE;
+    elseif ($vid == get_latest_revision_id($node->nid)) { // displaying latest
+      $present_view_latest_tab = !$present_view_current_tab;
+      $present_edit_latest_tab = !$present_edit_current_tab;
+      if (($view_op && $present_view_latest_tab) || ($edit_op && $present_edit_latest_tab)) {
+        // Suppress 'View latest' and 'Edit latest' primary tabs
+        return FALSE;
+      }
     }
   }
   return module_grants_node_revision_access($revision_op, $node);
