@@ -344,7 +344,7 @@ function vid_to_arg($arg, &$map, $index) {
 }
 
 function _title_for_view_tab($node) {
-  if (get_number_of_revisions($node->nid) == 1) {
+  if ($node->num_revisions == 1) {
     return t('View');
   }
   switch ($node->load_op) {
@@ -354,7 +354,7 @@ function _title_for_view_tab($node) {
 }
 
 function _title_for_edit_tab($node) {
-  if (get_number_of_revisions($node->nid) == 1) {
+  if ($node->num_revisions == 1) {
     return t('Edit');
   }
   switch ($node->load_op) {
@@ -387,7 +387,7 @@ function _revisioning_view_edit_access_callback($revision_op, &$node) {
   $node->load_op = $view_op ? $view_mode : $edit_mode;
   $args = arg(); // may return void or non-number eg. "node/123/revisions/list"
   if (is_numeric($vid = $args[3])) { // requesting revision, eg "node/123/revisions/456/*"
-    if ($vid == get_current_revision_id($node->nid)) { // about to display current
+    if ($vid == $node->current_revision_id) { // about to display current
       if (($view_op && $view_mode == VIEW_CURRENT) || ($edit_op && $edit_mode == EDIT_CURRENT)) {
         // Suppress 'View current' and 'Edit current' primary tabs
         return FALSE;
@@ -426,13 +426,10 @@ function _revisioning_view_edit_access_callback($revision_op, &$node) {
  * under the Revisions tab) should appear.
  */
 function _revision_tasks_menu_access_callback($revision_op, $node) {
-  $current_revision_id = get_current_revision_id($node->nid);
-  $is_current = ($node->vid == $current_revision_id);
-  $is_pending = ($node->vid > $current_revision_id);
   switch ($revision_op) {
 
     case 'compare revisions':
-      if ($is_current) {
+      if ($node->is_current) {
         return FALSE;
       }
       $revision_op = 'view revisions';
@@ -442,7 +439,7 @@ function _revision_tasks_menu_access_callback($revision_op, $node) {
       // If the revision is the current one, suppress the delete tab...
       // @TODO ...unless it's the only revision, in which case delete the
       // entire node; this requires a different URL.
-      if ($is_current) {
+      if ($node->is_current) {
         return FALSE;
       }
       break;
@@ -450,7 +447,7 @@ function _revision_tasks_menu_access_callback($revision_op, $node) {
     case 'publish revisions':
       // If this revision isn't pending and it's also not the current
       // unpublished one, suppress the publication tab.
-      if (!$is_pending && !($is_current && !$node->status)) {
+      if (!$node->is_pending && !($node->is_current && !$node->status)) {
         return FALSE;
       }
       break;
@@ -458,7 +455,7 @@ function _revision_tasks_menu_access_callback($revision_op, $node) {
     case 'revert revisions':
       // If this revision is pending (i.e. future) or current, suppress the
       // revert tab
-      if ($is_pending || $is_current) {
+      if ($node->is_pending || $node->is_current) {
         return FALSE;
       }
       break;
@@ -466,7 +463,7 @@ function _revision_tasks_menu_access_callback($revision_op, $node) {
     case 'unpublish current revision':
       // If the node is unpublished already or we're not looking at the current
       // revision, suppress the unpublish tab
-      if (!$node->status || !$is_current) {
+      if (!$node->status || !$node->is_current) {
         return FALSE;
       }
       break;
@@ -509,14 +506,12 @@ function revisioning_admin_settings() {
 if (module_exists('diff')) {
 
   function _compare_to_current_revision($node) {
-    $current_revision_id = get_current_revision_id($node->nid);
-    $is_pending = ($node->vid > $current_revision_id);
     module_load_include('inc', 'diff', 'diff.pages'); // for diff_diffs_show()
     // Make sure that latest of the two revisions is on the right
-    if ($is_pending) {
-      return diff_diffs_show($node, $current_revision_id, $node->vid);
+    if ($node->is_pending) {
+      return diff_diffs_show($node, $node->current_revision_id, $node->vid);
     }
-    return diff_diffs_show($node, $node->vid, $current_revision_id);
+    return diff_diffs_show($node, $node->vid, $node->current_revision_id);
   }
 }
 
@@ -545,9 +540,7 @@ function _show_pending_nodes($access = 'view', $user_filter = NO_FILTER) {
  * the permitted operations above it.
  */
 function _present_node($node, $op = 'any') {
-  return ($op  == 'edit' && !is_moderated($node->type))
-    ? node_page_edit($node)
-    :_theme_revisions_summary($node);
+  return ($op  == 'edit' && !$node->revision_moderation) ? node_page_edit($node) :_theme_revisions_summary($node);
 }
 
 /**
@@ -623,9 +616,9 @@ function _revision_delete_submit(&$form, &$form_state) {
 /**
  * Implementation of hook_form_FORM_ID_form_alter().
  *
- * On content type edit form, add the "New revisions in moderation" tick-box
- * and a couple of radio-boxes to select the new revision and auto-publish
- * policies.
+ * On content type edit form, add the "New revision in draft, pending moderation"
+ * tick-box and a couple of radio-boxes to select the new revision and
+ * auto-publish policies.
  */
 function revisioning_form_node_type_form_alter(&$form, &$form_state) {
   $form['workflow']['#collapsed'] = FALSE;
@@ -661,9 +654,17 @@ function revisioning_form_node_type_form_alter(&$form, &$form_state) {
 function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
   $args = arg();
   switch ($op) {
-    case 'prepare':
-    case 'presave':
-    case 'insert':
+    case 'load': // get here immediately after node_load()
+      $node->revision_moderation = is_moderated($node->type);
+    case 'presave': // for edits
+      // see also module_grants_nodeapi()
+      $node->is_pending = is_pending($node);
+      if ($op != 'presave') {
+        break;
+      }
+
+    case 'prepare': // presenting edit form
+    case 'insert':  // new node
     case 'update':
       $edit_user_profile = ($args[0] == 'user') && ($args[2] == 'edit') && !empty($args[3]);
       if (!($args[0] == 'node' || $edit_user_profile)) {
@@ -682,15 +683,13 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
       if (end($args) == 'edit' || $edit_user_profile) {
         // node/<nid>/edit, node/<nid>/revisions/<vid>/edit, user/<uid>/edit
         _handle_edit($node, $op); // 'prepare', 'presave', 'update'
-        return;
       }
       break;
 
     // called just after $node object is fully built for display
     case 'alter':
       if (!$teaser && $node->nid == $args[1] && // don't show msg on page with many nodes
-          is_moderated($node->type) && user_access('view revision status messages') &&
-          module_grants_node_revision_access('view revisions', $node)) {
+          $node->revision_moderation && user_access('view revision status messages')) {
             drupal_set_message(_get_node_info_msg($node));
       }
       break;
@@ -743,33 +742,28 @@ function _handle_edit(&$node, $op) {
       drupal_set_message(t('Please note there are !count revisions more recent than the one you are about to edit.', array('!count' => $count)), 'warning');
     }
   }
-  // Check if "Revisions in moderation" box ticked under Content types>>Workflow settings
-  if ($node->revision_moderation) {
+  // Check if the "New revision in draft, pending moderation" box is ticked
+  // under Content management>>Content types>>Workflow settings and potentially
+  // overridden by user with "administer nodes" perm on the edit form, section
+  // "Revision information"
+  elseif ($node->revision_moderation) {
     switch ($op) {
       case 'presave': // called from start of node_save()
-        $node->original_revision = $node->revision;
-        if ($node->revision && variable_get('new_revisions_'. $node->type, NEW_REVISION_WHEN_NOT_PENDING) == NEW_REVISION_WHEN_NOT_PENDING) {
-          if (_is_pending($node)) {
-            drupal_set_message(t('Updating existing copy, not creating new revision as this one is still pending.'));
-            $node->revision = FALSE;
-          }
+        if ($node->revision && $node->is_pending && variable_get('new_revisions_'. $node->type, NEW_REVISION_WHEN_NOT_PENDING) == NEW_REVISION_WHEN_NOT_PENDING) {
+          drupal_set_message(t('Updating existing copy, not creating new revision as this one is still pending.'));
+          $node->revision = FALSE;
         }
         if (variable_get('revisioning_auto_publish_'. $node->type, FALSE) && user_access('publish revisions')) {
-          // By-pass moderation and make sure node is published
+          // By-pass moderation publish node immediately.
           drupal_set_message(t('Auto-publishing this revision.'));
           $node->status = TRUE;
-        }
-        else {
-          // Save the vid for subsequent restore during 'update' op
-          $node->original_vid = get_current_revision_id($node->nid);
         }
         break;
 
       case 'update': // called from end of node_save(), after _node_save_revision()
-        $node->revision = $node->original_revision;
-        if (isset($node->original_vid) && $node->original_vid != $node->vid) {
-          // Resetting node vid back to its originial value, thus creating pending revision
-          db_query('UPDATE {node} SET vid=%d WHERE nid=%d', $node->original_vid, $node->nid);
+        if (isset($node->current_revision_id) && $node->current_revision_id != $node->vid) {
+          // Resetting vid back to its originial value, thus creating pending revision
+          db_query('UPDATE {node} SET vid=%d WHERE nid=%d', $node->current_revision_id, $node->nid);
         }
         break;
     }
@@ -781,8 +775,8 @@ function _handle_edit(&$node, $op) {
  *
  * Normally called when URLs of the format 'node/%node/revisions/%vid/view'
  * are clicked, this may also be used for URLs like 'node/%node/view'.
- * In the latter case the we either load the current revision (default) or
- * the latest, as specified by the node's load_latest attribute.
+ * In the latter case we either load the current revision (default) or the
+ * latest, as specified by the node's load_op attribute.
  */
 function _revision_view($node) {
   if ($node->load_op == VIEW_LATEST && ($latest_vid = get_latest_revision_id($node->nid)) != $node->vid) {
@@ -801,8 +795,8 @@ function _revision_view($node) {
  *
  * Normally called when URLs of the format 'node/%node/revisions/%vid/edit'
  * are clicked, this may also be used for URLs like 'node/%node/edit'.
- * In the latter case the we either load the current revision (default) or
- * the latest, as specified by the node's load_latest attribute.
+ * In the latter case we either load the current revision (default) or the
+ * latest, as specified by the node's load_op attribute.
  */
 function _revision_edit($node) {
   // Use the admin theme if the user specified this for node edit pages
@@ -949,9 +943,8 @@ function revisioning_revert_confirm_post_submit($form, &$form_state) {
  */
 function generate_node_links_according_to_permissions($node, $link_type = 0) {
   $nid = $node->nid;
-  $num_revisions = get_number_of_revisions($nid);
   $links = array();
-  if ($num_revisions == 1 && !$node->status && module_grants_node_revision_access('publish revisions', $node)) {
+  if ($node->num_revisions == 1 && !$node->status && module_grants_node_revision_access('publish revisions', $node)) {
     $link['title'] = t('Publish');
     $link['href'] = "node/$nid/revisions/$node->vid/publish";
   //$link['localized_options']['query'] = drupal_get_destination();
@@ -965,9 +958,9 @@ function generate_node_links_according_to_permissions($node, $link_type = 0) {
   }
   if (module_grants_node_access('delete', $node)) {
     $link['title'] = // avoiding format_plural [#557050]
-      $num_revisions == 1 
-      ? t('Delete') 
-      : ($num_revisions == 2 ? t('Delete both revisions') : t('Delete all @count revisions', array('@count' => $num_revisions)));
+      ($node->num_revisions == 1)
+      ? t('Delete')
+      : ($node->num_revisions == 2 ? t('Delete both revisions') : t('Delete all @count revisions', array('@count' => $node->num_revisions)));
     $link['href'] = "node/$nid/delete";
   //$link['localized_options']['query'] = '';
     $links[] = $link;
@@ -1052,6 +1045,18 @@ function get_latest_revision_id($nid) {
   return db_result(db_query('SELECT MAX(vid) FROM {node_revisions} WHERE nid=%d', $nid));
 }
 
+/**
+ * Return TRUE when the when either of the following is true:
+ * o the supplied node has at least one revision more recent than the current
+ * o the node is not yet published and consists of a single revision
+ *
+ * @param $node
+ * @return TRUE, if node is pending according to the above definition
+ */
+function is_pending($node) {
+  return ($node->vid > $node->current_revision_id) || (!$node->status && $node->num_revisions == 1);
+}
+
 function _set_info_message() {
   if (!user_access('publish revisions')) {
     return;
@@ -1059,7 +1064,7 @@ function _set_info_message() {
   $moderated_types = array();
   foreach (node_get_types() as $type) {
     if (is_moderated($type->type)) {
-      $moderated_types[] = $type->name; // $type->name ?
+      $moderated_types[] = $type->name;
     }
   }
   if (count($moderated_types) == 0) {

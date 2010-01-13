@@ -276,7 +276,7 @@ function _revisioning_publish_latest_revision(&$node) {
   // Get latest pending revision or take the current provided it's UNpublished
   $latest_pending = array_shift(_get_pending_revisions($node->nid));
   if (!$latest_pending) {
-    if (!$node->status && $node->vid == get_current_revision_id($node->nid)) {
+    if (!$node->status && $node->is_current) {
       $latest_pending = $node;
     }
   }
@@ -333,20 +333,6 @@ function _get_pending_revisions($nid) {
 }
 
 /**
- * Return whether the node has a pending revision, that is a revision newer
- * than the current OR when there's only one revision, whether that revision is
- * unpublished.
- *
- * @param $node
- * @return
- *  TRUE, if the node has a pending revision.
- */
-function _is_pending($node) {
-  return ($node->vid > get_current_revision_id($node->nid)) ||
-    (!$node->status && get_number_of_revisions($node->nid) == 1) ;
-}
-
-/**
  * Retrieve a list of all revisions (archive, current, pending) belonging to
  * the supplied node.
  *
@@ -393,11 +379,10 @@ function _get_all_revisions_for_node($nid, $include_taxonomy_terms = FALSE) {
  *  Revision type
  */
 function _revisioning_revision_is(&$node) {
-  if (_is_pending($node)) {
+  if ($node->is_pending) {
     return REVISION_PENDING;
   }
-  $current_vid = get_current_revision_id($node->nid);
-  return ($current_vid == $node->vid) && $node->status ? REVISION_CURRENT : REVISION_ARCHIVED;
+  return ($node->is_current && $node->status) ? REVISION_CURRENT : REVISION_ARCHIVED;
 }
 
 /**

@@ -101,3 +101,7 @@ o [#628444]
 o [#602146]
 o Updated README.txt
 
+6.x-3.4
+=======
+Refactored for better efficiency and integratability, see [#642962]
+
