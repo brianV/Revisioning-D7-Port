@@ -403,16 +403,22 @@ function _revisioning_view_edit_access_callback($revision_op, &$node) {
   elseif (empty($args[2]) || $args[2] == 'view' || $args[2] == 'edit') {
     // "node/123", "node/123/view", "node/123/edit"
     if ($view_mode != VIEW_CURRENT || $edit_mode != EDIT_CURRENT) {
-      $original_vid = $node->vid;
-      $node->vid = get_latest_revision_id($node->nid);
-      $access = module_grants_node_revision_access($revision_op, $node);
-      // Restore vid, so that the $node object remains consistent
-      $node->vid = $original_vid;
-      if ($access) {
-        return TRUE;
+      $node->latest_vid = get_latest_revision_id($node->nid);
+      if ($node->latest_vid != $node->current_revision_id) {
+        $original_vid = $node->vid;
+        $node->vid = $latest_vid;
+        $node->is_current = ($node->current_revision_id == $node->vid);
+        
+        $access = module_grants_node_revision_access($revision_op, $node);
+        // Restore so that the $node object remains consistent
+        $node->vid = $original_vid;
+        $node->is_current = ($node->current_revision_id == $node->vid);
+        if ($access) {
+          return TRUE;
+        }
+        // Check access for original (i.e. current) revision instead
+        $node->load_op = $view_op ? VIEW_CURRENT : EDIT_CURRENT;
       }
-      // Check access for original (i.e. current) revision instead
-      $node->load_op = $view_op ? VIEW_CURRENT : EDIT_CURRENT;
     }
   }
   return module_grants_node_revision_access($revision_op, $node);
@@ -779,8 +785,8 @@ function _handle_edit(&$node, $op) {
  * latest, as specified by the node's load_op attribute.
  */
 function _revision_view($node) {
-  if ($node->load_op == VIEW_LATEST && ($latest_vid = get_latest_revision_id($node->nid)) != $node->vid) {
-    $node = node_load($node->nid, $latest_vid);
+  if ($node->load_op == VIEW_LATEST && $node->latest_vid != $node->vid) {
+    $node = node_load($node->nid, $node->latest_vid);
   }
   // In node.module, node_page_view() is used to display the current, while
   // node_show() is used for any other revision. The difference between the
@@ -804,8 +810,8 @@ function _revision_edit($node) {
     global $theme, $custom_theme;
     $custom_theme = variable_get('admin_theme', $theme);
   }
-  if ($node->load_op == EDIT_LATEST && ($latest_vid = get_latest_revision_id($node->nid)) != $node->vid) {
-    $node = node_load($node->nid, $latest_vid);
+  if ($node->load_op == EDIT_LATEST && $node->latest_vid != $node->vid) {
+    $node = node_load($node->nid, $node->latest_vid);
   }
   // Following is the same as node_page_edit().
   drupal_set_title(check_plain($node->title));
