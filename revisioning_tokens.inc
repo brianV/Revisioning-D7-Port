@@ -54,7 +54,7 @@ function revisioning_token_values($type, $object = NULL, $options = array()) {
         case 'revert':
         case 'unpublish':
           $nid = arg(1);
-          $revision = node_load($nid, get_current_revision_id($nid));
+          $revision = node_load($nid, node_tools_get_current_node_revision_id($nid));
           $values['vid'] = $revision->vid;
           $values['revision-title'] = $revision->title;
           _set_revision_author_values($revision->revision_uid, $values);

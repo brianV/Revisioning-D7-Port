@@ -260,7 +260,7 @@ function _theme_revisions_pending_block($nodes) {
   $block = array();
   $title_link = trim(variable_get('revisioning_content_summary_page', ''));
   if (empty($title_link)) {
-    if (module_exists('module_grants_monitor') && user_any_access(module_grants_monitor_perm())) {
+    if (module_exists('module_grants_monitor') && user_tools_user_any_access(module_grants_monitor_perm())) {
       $title_link = 'accessible-content';
     }
     else {
