@@ -3,4 +3,3 @@ name = Revisioning
 description = Allows the creation and modification of content while the current revision remains unchanged and publicly visible until the changes have been reviewed by a moderator.
 core = "6.x"
 dependencies[] = node_tools
-dependencies[] = user_tools

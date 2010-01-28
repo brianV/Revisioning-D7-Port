@@ -62,7 +62,7 @@ function revisioning_revisions_summary($form_state, $nid) {
   $show_taxonomy_terms = module_exists('taxonomy') &&
     (count(taxonomy_get_vocabularies()) > 0) && variable_get("show_taxonomy_terms", TRUE);
 
-  $revisions = _get_all_revisions_for_node($nid, $show_taxonomy_terms);
+  $revisions = _revisioning_get_all_revisions_for_node($nid, $show_taxonomy_terms);
 
   $revision_ids = array();
   foreach ($revisions as $revision) {
@@ -226,7 +226,7 @@ function theme_revisioning_revisions_summary($form) {
   }
   $attributes = array('class' => 'table-revisions');
   $content = theme(array('table_revisions', 'table'), $header, $rows, $attributes, $caption = NULL);
-  $submenu_links = generate_node_links_according_to_permissions($node);
+  $submenu_links = revisioning_generate_node_links_according_to_permissions($node);
   return theme(array('revisions_summary'), $submenu_links, $content) . drupal_render($form);
 }
 
@@ -252,7 +252,7 @@ function _theme_revisions_pending_block($nodes) {
   $nodes_to_display = array_slice($nodes, 0, $max_num_shown);
   $links = array();
   foreach ($nodes_to_display as $node) {
-    $vid = get_latest_revision_id($node->nid);
+    $vid = revisioning_get_latest_revision_id($node->nid);
     $links[] = l($node->title, "node/$node->nid/revisions/$vid/view");
   }
   $css_path = drupal_get_path('module', 'revisioning') .'/revisioning.css';

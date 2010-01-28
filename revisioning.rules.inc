@@ -37,7 +37,7 @@ function revisioning_rules_condition_info() {
  * Condition: check for pending revisions of the node.
  */
 function revisioning_node_has_pending($node, $settings) {
-  return (_get_number_of_pending_revisions($node->nid) > 0);
+  return (_revisioning_get_number_of_pending_revisions($node->nid) > 0);
 }
 
 /*
