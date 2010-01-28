@@ -77,7 +77,7 @@ function revisioning_perm() {
  * Return TRUE, FALSE or nothing, meaning "don't care".
  * If nothing is returned module_grants_node_revision_user_access() will apply
  * the default for the revsion-op.
- * 
+ *
  * @see module_grants_node_revision_access()
  */
 function revisioning_node_revision_access($revision_op, $node) {
@@ -114,7 +114,7 @@ function revisioning_node_revision_access($revision_op, $node) {
 
 /**
  * Return iff the supplied account has access to the node.
- * 
+ *
  * @param $node
  * @param $account, defaults to current user if omitted
  * @return TRUE if account has view access to the node, NULL otherwise
@@ -668,7 +668,7 @@ function revisioning_form_alter(&$form, &$form_state, $form_id) {
 
     // Change the meaning of the 'Delete (all revisions)' button when editing
     // a revision to be the deletion of the viewed revision, rather than the
-    // node. @todo: should this go in node_tools.module?
+    // node.
     $nid = $form['#node']->nid;
     $vid = $form['#node']->vid;
     if (isset($form['buttons']['delete']) && user_access('delete revisions') && $vid != node_tools_get_current_node_revision_id($nid)) {
@@ -1128,20 +1128,19 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
 }
 
 function _revisioning_set_info_message() {
-  if (!user_access('publish revisions')) {
-    return;
-  }
-  $moderated_types = array();
-  foreach (node_get_types() as $type) {
-    if (node_tools_content_is_moderated($type->type)) {
-      $moderated_types[] = $type->name;
+  if (user_access('publish revisions')) {
+    $moderated_types = array();
+    foreach (node_get_types() as $type) {
+      if (node_tools_content_is_moderated($type->type) &&
+        (user_access('view revisions') || user_access('view revisions of any '. $type->type .' content'))) {
+        $moderated_types[] = $type->name;
+      }
+    }
+    if (count($moderated_types) > 0) {
+      drupal_set_message(t('You have permission to publish revisions of type(s): %moderated_types.',
+        array('%moderated_types' => implode(', ', $moderated_types))));
     }
   }
-  if (count($moderated_types) == 0) {
-    return;
-  }
-  drupal_set_message(t('You have permission to publish revisions of type(s): %moderated_types.',
-    array('%moderated_types' => implode(', ', $moderated_types))));
 }
 
 /**
