@@ -28,21 +28,6 @@ function revisioning_theme() {
 }
 
 /**
- * Theme the revisions summary of the supplied node.
- *
- * @param $node
- *   Node whose revisions to display
- * @return
- *   Themed table HTML
- *
- * @ingroup themeable
- */
-function _theme_revisions_summary(&$node) {
-  drupal_set_title(t('Revisions for %title', array('%title' => $node->title)));
-  return drupal_get_form('revisioning_revisions_summary', $node->nid);
-}
-
-/**
  * Return revisions summary table data. If the Diff modules is enabled, the
  * object returned includes a column of checkboxes allowing the user to select
  * two revisions for side-by-side comparison.
@@ -226,7 +211,7 @@ function theme_revisioning_revisions_summary($form) {
   }
   $attributes = array('class' => 'table-revisions');
   $content = theme(array('table_revisions', 'table'), $header, $rows, $attributes, $caption = NULL);
-  $submenu_links = revisioning_generate_node_links_according_to_permissions($node);
+  $submenu_links = _revisioning_generate_node_links_according_to_permissions($node);
   return theme(array('revisions_summary'), $submenu_links, $content) . drupal_render($form);
 }
 
@@ -246,6 +231,21 @@ function theme_revisioning_revisions_summary($form) {
 function theme_table_revisions($header, $rows) {
 }
  */
+
+/**
+ * Theme the revisions summary of the supplied node.
+ *
+ * @param $node
+ *   Node whose revisions to display
+ * @return
+ *   Themed table HTML
+ *
+ * @ingroup themeable
+ */
+function _theme_revisions_summary(&$node) {
+  drupal_set_title(t('Revisions for %title', array('%title' => $node->title)));
+  return drupal_get_form('revisioning_revisions_summary', $node->nid);
+}
 
 function _theme_revisions_pending_block($nodes) {
   $max_num_shown = variable_get('revisioning_block_num_pending', 5);
@@ -272,4 +272,49 @@ function _theme_revisions_pending_block($nodes) {
     $title_link);
   $block['content'] = theme('item_list', $links);
   return $block;
+}
+
+
+/**
+ * Return an array of hyperlinks representing the operations the logged-in user
+ * is allowed to perform on the supplied node.
+ *
+ * @param $node
+ * @param $link_type
+ *   The type of link, e.g. MENU_IS_LOCAL_TASK, may affect the rendering via
+ *   theme('menu_item_link'), if overridden (eg zen_theme_menu_item_link()).
+ * @return array of themed hyperlinks
+ */
+function _revisioning_generate_node_links_according_to_permissions($node, $link_type = 0) {
+  $nid = $node->nid;
+  $links = array();
+  if ($node->num_revisions == 1 && !$node->status && _revisioning_node_revision_access('publish revisions', $node)) {
+    $link['title'] = t('Publish');
+    $link['href'] = "node/$nid/revisions/$node->vid/publish";
+  //$link['localized_options']['query'] = drupal_get_destination();
+    $links[] = $link;
+  }
+  elseif ($node->status && _revisioning_node_revision_access('unpublish current revision', $node)) {
+    $link['title'] = t('Unpublish current revision');
+    $link['href'] = "node/$nid/unpublish";
+  //$link['localized_options']['query'] = drupal_get_destination();
+    $links[] = $link;
+  }
+  $has_delete_permission = module_exists('module_grants')
+    ? module_grants_node_access('delete', $node) : node_access('delete', $node);
+  if ($has_delete_permission) {
+    $link['title'] = // avoiding format_plural [#557050]
+      ($node->num_revisions == 1)
+      ? t('Delete')
+      : ($node->num_revisions == 2 ? t('Delete both revisions') : t('Delete all @count revisions', array('@count' => $node->num_revisions)));
+    $link['href'] = "node/$nid/delete";
+  //$link['localized_options']['query'] = '';
+    $links[] = $link;
+  }
+  $themed_links = array();
+  foreach ($links as $link) {
+    $link['type'] = $link_type;
+    $themed_links[] = theme('menu_item_link', $link);
+  }
+  return $themed_links;
 }
