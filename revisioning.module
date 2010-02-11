@@ -114,16 +114,29 @@ function revisioning_node_revision_access($revision_op, $node) {
  * @param $permission
  *   user permission, e.g. 'view revisions'
  * @param $node
- * @return TRUE if account has view access to the node, NULL otherwise, meaning:
- *   let other modules decide whether access is granted
+ * @return TRUE or FALSE if the permission is known to Revisioning, NULL 
+ *   otherwise, meaning let other modules decide whether access is granted
  */
 function revisioning_user_access($permission, $node) {
   global $user;
 
   switch ($permission) {
-    case 'view revisions':
+    case 'edit revisions':
+      return $node->is_current || user_access($permission);
+
     case 'publish revisions':
-      if (!user_access('view revisions', $user)) {
+    case 'unpublish current revision':
+      return user_access($permission);
+
+    case 'view revisions':
+      if ($node->is_current) {
+        break;
+      }
+    case 'view revision list':
+      if (user_access('view revisions', $user)) {
+        return TRUE;
+      }
+      else {
         $type = check_plain($node->type);
         if (user_access('view revisions of any '. $type .' content', $user)) {
           return TRUE;
@@ -132,6 +145,7 @@ function revisioning_user_access($permission, $node) {
           return TRUE;
         }
       }
+      return $node->num_revisions > 1;
   }
 }
 
@@ -349,6 +363,13 @@ function revisioning_menu_alter(&$items) {
 
   // 'Revisions' tab remains but points to new page callback, allowing users to
   // pick the revision to view, edit, publish, revert, unpublish, delete.
+  // Need to override _node_revision_access() call back as it disallows access
+  // to the 'Revisions' tab when there's only one revision, which will prevent
+  // users from getting to the publish/unpublish links.
+  if ($items['node/%node/revisions']['access callback'] == '_node_revision_access') {
+    $items['node/%node/revisions']['access callback'] = '_revisioning_node_revision_access';
+    $items['node/%node/revisions']['access arguments'] = array('view revision list', 1);
+  }
   $items['node/%node/revisions']['page callback'] = '_revisioning_present_node';
   $items['node/%node/revisions']['page arguments'] = array(1);
 
@@ -539,6 +560,11 @@ function vid_to_arg($arg, &$map, $index) {
  * @return TRUE, FALSE or nothing ("don't care")
  */
 function _revisioning_node_revision_access($revision_op, $node) {
+
+  if (!isset($node->num_revisions) || !isset($node->is_current)) {
+    drupal_set_message('Node object data incomplete -- have you enabled the Node Tools submodule?', 'warning', FALSE);
+  }
+
   if (!_revisioning_operation_appropriate($revision_op, $node)) {
     return FALSE;
   }
@@ -548,19 +574,27 @@ function _revisioning_node_revision_access($revision_op, $node) {
   else {
     // Fall back to core to assess permissions (even though they suck)
     switch ($revision_op) {
-      case 'edit revisions':
-      case 'revert revisions':
-        $node_op = 'update';
-        break;
+
       case 'delete revisions':
         $node_op = 'delete';
         break;
+
+      case 'revert revisions':
+        $node_op = 'update';
+        break;
+
+      case 'view revisions':
+      case 'view revision list':
+      case 'edit revisions':
+      case 'publish revisions':
+      case 'unpublish current revision':
+        if (revisioning_user_access($revision_op, $node) === FALSE) {
+          return FALSE;
+        }
       default:
-       $node_op = 'view';
+        $node_op = 'view';
     }
-    $access = ($node->is_current)
-      ? node_access($node_op, $node)
-      : user_access($revision_op) && _node_revision_access($node, $node_op);
+    $access = $node->is_current ? node_access($node_op, $node) : _node_revision_access($node, $node_op);
   }
   return $access;
 }
@@ -664,7 +698,7 @@ function _revisioning_view_edit_access_callback($revision_op, &$node) {
         if ($access) {
           return TRUE;
         }
-        // Check access for original (i.e. current) revision instead
+        // No access to latest, go for original (i.e. current) revision instead
         $node->load_op = $view_op ? VIEW_CURRENT : EDIT_CURRENT;
       }
     }
