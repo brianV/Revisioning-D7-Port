@@ -288,21 +288,19 @@ function _theme_revisions_pending_block($nodes) {
 function _revisioning_generate_node_links_according_to_permissions($node, $link_type = 0) {
   $nid = $node->nid;
   $links = array();
-  if ($node->num_revisions == 1 && !$node->status && _revisioning_node_revision_access('publish revisions', $node)) {
+  if (_revisioning_node_revision_access('publish revisions', $node)) {
     $link['title'] = t('Publish');
     $link['href'] = "node/$nid/revisions/$node->vid/publish";
   //$link['localized_options']['query'] = drupal_get_destination();
     $links[] = $link;
   }
-  elseif ($node->status && _revisioning_node_revision_access('unpublish current revision', $node)) {
+  elseif (_revisioning_node_revision_access('unpublish current revision', $node)) {
     $link['title'] = t('Unpublish current revision');
     $link['href'] = "node/$nid/unpublish";
   //$link['localized_options']['query'] = drupal_get_destination();
     $links[] = $link;
   }
-  $has_delete_permission = module_exists('module_grants')
-    ? module_grants_node_access('delete', $node) : node_access('delete', $node);
-  if ($has_delete_permission) {
+  if (_revisioning_node_revision_access('delete node', $node)) {
     $link['title'] = // avoiding format_plural [#557050]
       ($node->num_revisions == 1)
       ? t('Delete')
