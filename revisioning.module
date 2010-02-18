@@ -486,8 +486,8 @@ function vid_to_arg($arg, &$map, $index) {
  *   node or revision operation e.g. 'view revisions'
  * @param $node
  * @return the associated node operation required for this revision_op, or
- *   FALSE if access to the node is to denied.
- *   Valid node operations are 'view', 'update', 'delete'.
+ *   FALSE if access to the node is to be denied.
+ *   Valid node operations to return are 'view', 'update', 'delete'.
  */
 function revisioning_user_node_access($revision_op, $node) {
   global $user;
@@ -499,16 +499,14 @@ function revisioning_user_node_access($revision_op, $node) {
     case 'view revisions':
     case 'view revision list':
       if (user_access('view revisions', $user)) { // node.module
-        return 'view';
+        break;
       }
-      else {
-        $type = check_plain($node->type);
-        if (user_access('view revisions of any '. $type .' content', $user)) {
-          return 'view';
-        }
-        if (($node->uid == $account->uid) && user_access('view revisions of own '. $type .' content', $user)) {
-          return 'view';
-        }
+      $type = check_plain($node->type);
+      if (user_access('view revisions of any '. $type .' content', $user)) {
+        break;
+      }
+      if (($node->uid == $account->uid) && user_access('view revisions of own '. $type .' content', $user)) {
+        break;
       }
       return FALSE;
 
@@ -517,14 +515,14 @@ function revisioning_user_node_access($revision_op, $node) {
 
     case 'edit revisions':
     case 'revert revisions':
-      return user_access($revision_op) ? 'update' : FALSE;
+      return user_access($revision_op, $user) ? 'update' : FALSE;
 
     case 'publish revisions':
     case 'unpublish current revision':
-      return user_access($revision_op) ? 'view' : FALSE;
+      return user_access($revision_op, $user) ? 'view' : FALSE;
 
     case 'delete revisions':
-      if (!user_access($revision_op)) {
+      if (!user_access($revision_op, $user)) {
         return FALSE;
       }
     case 'delete node':
@@ -608,8 +606,7 @@ function _revisioning_operation_appropriate($revision_op, $node) {
  * @param $revision_op
  *   For instance 'publish revisions', 'delete revisions'
  * @param $node
- * @return tri-state
- *   TRUE, FALSE or nothing ("don't care")
+ * @return bool
  */
 function _revisioning_node_revision_access($revision_op, $node) {
 
