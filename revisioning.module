@@ -333,46 +333,79 @@ function revisioning_menu_alter(&$items) {
 
 /**
  * Implementation of hook_nodeapi().
+ * 
+ * This function is called serveral times during the node's life cycle, with
+ * different node operations passed in.
+ *
+ * Typically when loading a node for viewing, the order is:
+ *   'load', 'view', 'alter'
+ * 
+ * When creating new content:
+ *   Before displaying the creation form: 'prepare'
+ *   When saving: 'validate', 'presave', 'insert'
+ *
+ * When editing an existing node:
+ *   Before displaying the edit form: 'load', 'prepare'
+ *   When saving: 'load', 'validate', 'presave', 'update'
+ *
+ * The same $op may be requested multiple times during the same HTTP request,
+ * especially 'load'.
  */
 function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
-  $args = arg();
-  switch ($op) {
-    case 'load': // get here immediately after node_load()
-      $node->revision_moderation = node_tools_content_is_moderated($node->type);
-    case 'presave': // for edits
-      $node->is_pending = _revisioning_node_is_pending($node);
-      if ($op != 'presave') {
-        break;
-      }
 
-    case 'prepare': // presenting edit form
-    case 'insert':  // new node
-    case 'update':
-      $edit_user_profile = ($args[0] == 'user') && ($args[2] == 'edit') && !empty($args[3]);
-      if (!($args[0] == 'node' || $edit_user_profile)) {
-        // Only interested in URIs starting with /node or /user/<uid>/edit/<content_type>
-        return;
-      }
-      if ($args[1] == 'add') {
-        // /node/add/<content_type>; there is no 'add' for user profiles, only 'edit'
-        _revisioning_handle_new($node, $op); // 'presave', 'insert'
-        return;
-      }
-      // Must have nid (when editing node) or uid (when editing user profile)
-      if (!is_numeric($args[1])) {
-        return;
-      }
-      if (end($args) == 'edit' || $edit_user_profile) {
-        // node/<nid>/edit, node/<nid>/revisions/<vid>/edit, user/<uid>/edit
-        _revisioning_handle_edit($node, $op); // 'prepare', 'presave', 'update'
+  switch ($op) {
+    case 'load': // called at the end of node_load()
+      // The revision_moderation flag may be overridden on the node edit form
+      // by users with the "administer nodes" permission
+      $node->revision_moderation = node_tools_content_is_moderated($node->type);
+      $node->is_pending = _revisioning_node_is_pending($node);
+      // Could use following, but this seems old style, i.e. when $node is not a &ref
+      //$node_extras['revision_moderation'] = $node->revision_moderation;
+      //$node_extras['is_pending'] = $node->is_pending;
+      break;
+
+    case 'view': // called from called from node_view() before $node is fully built
+      break;
+
+    case 'alter': // called from node_view() after $node is fully built for display
+      if (!$teaser && $node->nid == arg(1) && // don't show msg on page with many nodes
+        $node->revision_moderation && user_access('view revision status messages')) {
+        drupal_set_message(_revisioning_node_info_msg($node));
       }
       break;
 
-    // called just after $node object is fully built for display
-    case 'alter':
-      if (!$teaser && $node->nid == $args[1] && // don't show msg on page with many nodes
-          $node->revision_moderation && user_access('view revision status messages')) {
-            drupal_set_message(_revisioning_node_info_msg($node));
+    case 'prepare': // presenting edit form
+      _revisioning_prepare_msg($node);
+      break;
+
+    case 'presave': // for edits, called from node_save(), prior to _node_save_revision()
+      if ($node->revision_moderation) { // Tick-box on edit form
+        $node->is_pending = _revisioning_node_is_pending($node);
+        if ($node->revision && $node->is_pending && variable_get('new_revisions_'. $node->type, NEW_REVISION_WHEN_NOT_PENDING) == NEW_REVISION_WHEN_NOT_PENDING) {
+          drupal_set_message(t('Updating existing copy, not creating new revision as this one is still pending.'));
+          // Update the $node object just before it is saved to the db
+          $node->revision = FALSE;
+        }
+        if (!$node->status && user_access('publish revisions') && variable_get('revisioning_auto_publish_'. $node->type, FALSE)) {
+          drupal_set_message(t('Auto-publishing this revision.'));
+          $node->status = TRUE;
+          // Make sure current_revision_id is pointing to right revision or
+          // subsequent $op='update' will reset it
+          $node->current_revision_id = $node->vid;
+        }
+      }
+      break;
+
+    case 'insert': // new node, called from node_save(), after _node_save_revision()
+      _revisioning_insert_msg($node);
+      break;
+
+    case 'update':  // new node, called from node_save(), after _node_save_revision()
+      if ($node->revision_moderation &&
+          isset($node->current_revision_id) && $node->current_revision_id != $node->vid) {
+        // Resetting vid back to its originial value, thus creating pending revision
+        db_query('UPDATE {node} SET vid=%d WHERE nid=%d', $node->current_revision_id, $node->nid);
+      //$node->is_pending = TRUE;
       }
       break;
 
@@ -380,12 +413,13 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
       module_invoke_all('revisionapi', 'post delete', $node);
       break;
   }
+  return; // $node_extras;
 }
 
 /**
  * Implementation of hook_block().
  *
- * A block that may be placed on all or selected pages, alterting the user
+ * A block that may be placed on all or selected pages, alerting the user
  * (moderator) when new content has been submitted for review. Shows titles
  * of pending revisions as a series of links (max. number configurable).
  * Clicking a link takes the moderator straight to the revision in question.
@@ -556,14 +590,15 @@ function _revisioning_operation_appropriate($revision_op, $node) {
       return !$node->is_current;
 
     case 'view revision list': // i.e. node revisions summary
-      if ($node->num_revisions == 1 && !$node->revision_moderation &&
-        (module_exists('module_grants') ? !module_grants_node_access('delete', $node) : !node_access('delete', $node))) {
+      if ($node->num_revisions == 1 && !$node->revision_moderation
+        /*&& (module_exists('module_grants') ? !module_grants_node_access('delete', $node) : !node_access('delete', $node))*/) {
         // Suppress Revisions tab when when there's only 1 revision -- consistent with core.
         // However, when content is moderated (i.e. "New revision in draft,
         // pending moderation" is ticked) we want to be able to get to the
         // 'Unpublish current' link on this page and the 'Publish this' tab on
         // the next. Also when user has permission to delete node, we need to
-        // present the Delete link.
+        // present the Delete link, unless we assume that this privilege
+        // assumes the 'edit' permission.
         return FALSE;
       }
       break;
@@ -693,73 +728,25 @@ function _revisioning_view_edit_access_callback($op, &$node) {
   return _revisioning_node_revision_access($revision_op, $node);
 }
 
-/**
- * Handle URLs of the form 'node/add/<content_type>'.
- * @param $node
- * @param $op, only listening to 'presave' and 'insert'
- * @return nothing
- */
-function _revisioning_handle_new(&$node, $op) {
-  switch ($op) {
-    case 'presave':
-      if ($node->revision_moderation && !$node->status && variable_get('revisioning_auto_publish_'. $node->type, FALSE) && (user_access('publish revisions'))) {
-        drupal_set_message(t('Auto-publishing initial draft as the first revision.'));
-        $node->status = TRUE;
-      }
-      break;
-
-    case 'insert':
-      if ($node->status) {
-        drupal_set_message(t('Initial revision created and published.'));
-      }
-      else {
-        drupal_set_message(t('Initial draft created, pending publication.'));
-      }
-      break;
+function _revisioning_prepare_msg($node) {
+  if (!$node->nid) { // new node
+    return;
   }
-}
-
-/** Handle URLs of the form 'node/<nid>/edit'
- *
- * @param $node
- * @param $op, only listening to 'prepare', 'presave' and 'update'
- * @return nothing
- */
-function _revisioning_handle_edit(&$node, $op) {
-  if ($op == 'prepare') {
-    $count = _revisioning_get_number_of_revisions_newer_than($node->vid, $node->nid);
-    if ($count == 1) {
-      drupal_set_message(t('Please note there is one revision more recent than the one you are about to edit.'), 'warning');
-    }
-    elseif ($count > 1) {
-      drupal_set_message(t('Please note there are !count revisions more recent than the one you are about to edit.', array('!count' => $count)), 'warning');
-    }
+  $count = _revisioning_get_number_of_revisions_newer_than($node->vid, $node->nid);
+  if ($count == 1) {
+    drupal_set_message(t('Please note there is one revision more recent than the one you are about to edit.'), 'warning');
   }
-  // Check if the "New revision in draft, pending moderation" box is ticked
-  // under Content management>>Content types>>Workflow settings and potentially
-  // overridden by user with "administer nodes" perm on the edit form, section
-  // "Revision information"
-  elseif ($node->revision_moderation) {
-    switch ($op) {
-      case 'presave': // called from start of node_save()
-        if ($node->revision && $node->is_pending && variable_get('new_revisions_'. $node->type, NEW_REVISION_WHEN_NOT_PENDING) == NEW_REVISION_WHEN_NOT_PENDING) {
-          drupal_set_message(t('Updating existing copy, not creating new revision as this one is still pending.'));
-          $node->revision = FALSE;
-        }
-        if (variable_get('revisioning_auto_publish_'. $node->type, FALSE) && user_access('publish revisions')) {
-          // By-pass moderation publish node immediately.
-          drupal_set_message(t('Auto-publishing this revision.'));
-          $node->status = TRUE;
-        }
-        break;
+  elseif ($count > 1) {
+    drupal_set_message(t('Please note there are !count revisions more recent than the one you are about to edit.', array('!count' => $count)), 'warning');
+  }
+} 
 
-      case 'update': // called from end of node_save(), after _node_save_revision()
-        if (isset($node->current_revision_id) && $node->current_revision_id != $node->vid) {
-          // Resetting vid back to its originial value, thus creating pending revision
-          db_query('UPDATE {node} SET vid=%d WHERE nid=%d', $node->current_revision_id, $node->nid);
-        }
-        break;
-    }
+function _revisioning_insert_msg($node) {
+  if ($node->status) {
+    drupal_set_message(t('Initial revision created and published.'));
+  }
+  else {
+    drupal_set_message(t('Initial draft created, pending publication.'));
   }
 }
 
