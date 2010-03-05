@@ -273,7 +273,7 @@ function revisioning_menu_alter(&$items) {
   // callback defined in Module Grants.
   $items['node/%node']['access callback'] = $items['node/%node/view']['access callback'] = '_revisioning_view_edit_access_callback';
   $items['node/%node']['access arguments']= $items['node/%node/view']['access arguments']= array('view', 1);
-  $items['node/%node']['page callback']   = $items['node/%node/view']['page callback']   = '_revisioning_view_revision';
+  $items['node/%node']['page callback']   = $items['node/%node/view']['page callback']   = '_revisioning_view';
   $items['node/%node']['page arguments']  = $items['node/%node/view']['page arguments']  = array(1);
   $items['node/%node']['title callback']  = $items['node/%node/view']['title callback']  = '_revisioning_title_for_tab';
   $items['node/%node']['title arguments'] = $items['node/%node/view']['title arguments'] = array(1, FALSE);
@@ -284,7 +284,7 @@ function revisioning_menu_alter(&$items) {
   // callback defined in Module Grants.
   $items['node/%node/edit']['access callback'] = '_revisioning_view_edit_access_callback';
   $items['node/%node/edit']['access arguments']= array('edit', 1);
-  $items['node/%node/edit']['page callback']   = '_revisioning_edit_revision';
+  $items['node/%node/edit']['page callback']   = '_revisioning_edit';
   $items['node/%node/edit']['title callback']  = '_revisioning_title_for_tab';
   $items['node/%node/edit']['title arguments'] = array(1, TRUE);
 
@@ -333,13 +333,13 @@ function revisioning_menu_alter(&$items) {
 
 /**
  * Implementation of hook_nodeapi().
- * 
+ *
  * This function is called serveral times during the node's life cycle, with
  * different node operations passed in.
  *
  * Typically when loading a node for viewing, the order is:
  *   'load', 'view', 'alter'
- * 
+ *
  * When creating new content:
  *   Before displaying the creation form: 'prepare'
  *   When saving: 'validate', 'presave', 'insert'
@@ -467,12 +467,10 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
       break;
 
     case 'view':
-      if (user_access('view revisions')) {
-        $order = variable_get('revisioning_block_order', REVISIONS_BLOCK_OLDEST_AT_TOP) == REVISIONS_BLOCK_OLDEST_AT_TOP ? 'ASC' : 'DESC';
-        $nodes = node_tools_get_nodes('update', NO_FILTER, NO_FILTER, NO_FILTER, TRUE, TRUE, 100, 'timestamp '. $order);
-        if (!empty($nodes)) {
-          return _theme_revisions_pending_block($nodes);
-        }
+      $order = variable_get('revisioning_block_order', REVISIONS_BLOCK_OLDEST_AT_TOP) == REVISIONS_BLOCK_OLDEST_AT_TOP ? 'ASC' : 'DESC';
+      $nodes = node_tools_get_nodes('update', NO_FILTER, NO_FILTER, NO_FILTER, TRUE, TRUE, 100, 'timestamp '. $order);
+      if (!empty($nodes)) {
+        return _theme_revisions_pending_block($nodes);
       }
   }
 }
@@ -591,7 +589,7 @@ function _revisioning_operation_appropriate($revision_op, $node) {
 
     case 'view revision list': // i.e. node revisions summary
       if ($node->num_revisions == 1 && !$node->revision_moderation
-        /*&& (module_exists('module_grants') ? !module_grants_node_access('delete', $node) : !node_access('delete', $node))*/) {
+        /* && (module_exists('module_grants') ? !module_grants_node_access('delete', $node) : !node_access('delete', $node))*/) {
         // Suppress Revisions tab when when there's only 1 revision -- consistent with core.
         // However, when content is moderated (i.e. "New revision in draft,
         // pending moderation" is ticked) we want to be able to get to the
@@ -635,8 +633,8 @@ function _revisioning_operation_appropriate($revision_op, $node) {
  * o Is the operation appropriate for this node at this time, e.g. a node must
  *   not be published if it already is or if it isn't under moderation control
  * o Does the user have permissions to operations of this kind in general?
- * o Does the user have the access rights (view/update/delete) to the node
- *   required for this operation?
+ * o Does the user have the node access rights (view/update/delete) required
+ *   for this operation?
  *
  * @param $revision_op
  *   For instance 'publish revisions', 'delete revisions'
@@ -663,69 +661,78 @@ function _revisioning_node_revision_access($revision_op, $node) {
 }
 
 /**
- * Access callback for the 'View current/latest' and 'Edit current/latest'
- * primary tabs.
- * Actual content access control is delegated to _revisioning_node_revision_access.
- * This function just adds checking of the conditions under which the primary
- * tabs should appear.
+ * Access callback for 'node/%', 'node/%/view' and 'node/%/edit' links that
+ * may appear anywhere on the site.
+ * At the time that this function is called the CURRENT revision will already
+ * have been loaded by the system. However depending on the value of the
+ * 'revisioning_view_callback' and 'revisioning_edit_callback' variables (as
+ * set on the admin/settings/revisioning page), this may not be the desired
+ * revision.
+ * If these variables state that the LATEST revision should be loaded, we need
+ * to check at this point whether the user has permission to view this revision.
+ *
  * The 'View current' and/or 'Edit current' tabs are suppressed when the current
  * revision is already displayed via one of the Revisions subtabs.
  * The 'View latest' and/or 'Edit latest' tabs are suppressed when the latest
  * revision is already displayed via one of the Revisions subtabs.
  *
  * @param op, must be one of 'view' or 'edit'
- * @param $node, may be modified
- * @return nothing
+ * @param $node
+ * @return FALSE if access to the desired revision is denied
+ *
  */
-function _revisioning_view_edit_access_callback($op, &$node) {
+function _revisioning_view_edit_access_callback($op, $node) {
+
+  $load_op = _revisioning_load_op($node, $op, TRUE);
+
+  $vid = arg(3);
+  if (is_numeric($vid)) {
+    // The View, Edit primary tabs are requested indirectly, in the context of
+    // the secondary tabs under Revisions, e.g. node/%/revisions/%
+    if ($load_op == REVISIONING_LOAD_CURRENT && $vid == $node->current_revision_id) {
+      // Suppress 'View current' and 'Edit current' primary tabs when viewing current
+      return FALSE;
+    }
+    if ($load_op == REVISIONING_LOAD_LATEST && $vid == revisioning_get_latest_revision_id($node->nid)) {
+      // Suppress 'View latest' and 'Edit latest' primary tabs when viewing latest
+      return FALSE;
+    }
+    return TRUE;
+  }
+  if ($load_op == REVISIONING_LOAD_LATEST) {
+    // _revisioning_load_op has already checked permission to view latest
+    return TRUE;
+  }
+  $revision_op = ($op == 'view') ? 'view current' : 'edit current';
+  return _revisioning_node_revision_access($revision_op, $node);
+}
+
+function _revisioning_load_op($node, $op, $check_access = FALSE) {
   $view_mode = (int)variable_get('revisioning_view_callback', REVISIONING_LOAD_CURRENT);
   $edit_mode = (int)variable_get('revisioning_edit_callback', REVISIONING_LOAD_CURRENT);
-  $node->load_op = ($op == 'view') ? $view_mode : $edit_mode;
-
-  $args = arg(); // may return void or non-number eg. "node/123/revisions/list"
-  $vid = $args[3];
-  if (is_numeric($vid)) { // requesting revision, eg "node/123/revisions/456/*"
-    if ($vid == $node->current_revision_id) { // about to display current
-      if ($node->load_op == REVISIONING_LOAD_CURRENT) {
-        // Suppress 'View current' and 'Edit current' primary tabs
-        return FALSE;
+  $load_op = ($op == 'edit') ? $edit_mode : $view_mode;
+  if ($load_op == REVISIONING_LOAD_LATEST) {
+    // Site is configured to load latest revision, but we'll only do this if
+    // the user has the permission to do so.
+    $latest_vid = revisioning_get_latest_revision_id($node->nid);
+    if ($latest_vid != $node->current_revision_id) {
+      if (!$check_access) {
+        return REVISIONING_LOAD_LATEST;
+      }
+      $original_vid = $node->vid;
+      $node->vid = $latest_vid;
+      $node->is_current = node_tools_revision_is_current($node);
+      $revision_op = ($op == 'view') ? 'view revisions' : 'edit revisions';
+      $access = _revisioning_node_revision_access($revision_op, $node);
+      // Restore $node (even though called by value), so that it remains consistent
+      $node->vid = $original_vid;
+      $node->is_current = node_tools_revision_is_current($node);
+      if ($access) {
+        return REVISIONING_LOAD_LATEST;
       }
     }
-    if ($vid == revisioning_get_latest_revision_id($node->nid)) { // about to display latest
-      if ($node->load_op == REVISIONING_LOAD_LATEST) {
-        // Suppress 'View latest' and 'Edit latest' primary tabs
-        return FALSE;
-      }
-    }
   }
-  elseif (empty($args[2]) || $args[2] == 'view' || $args[2] == 'edit') {
-    // "node/123", "node/123/view", "node/123/edit"
-    if ($node->load_op == REVISIONING_LOAD_LATEST) {
-      $node->latest_vid = revisioning_get_latest_revision_id($node->nid);
-      if ($node->latest_vid != $node->current_revision_id) {
-        $original_vid = $node->vid;
-        $node->vid = $node->latest_vid;
-        $node->is_current = node_tools_revision_is_current($node);
-        $revision_op = ($op == 'view') ? 'view revisions' : 'edit revisions';
-        $access = _revisioning_node_revision_access($revision_op, $node);
-        // Restore so that the $node object remains consistent
-        $node->vid = $original_vid;
-        $node->is_current = node_tools_revision_is_current($node);
-        if ($access) {
-          return TRUE;
-        }
-      }
-      // No access to latest or already loading latest (which may be current)
-      $node->load_op = REVISIONING_LOAD_CURRENT;
-    }
-  }
-  if ($node->load_op == REVISIONING_LOAD_CURRENT) {
-    $revision_op = ($op == 'view') ? 'view current' : 'edit current';
-  }
-  else {
-    $revision_op = ($op == 'view') ? 'view revisions' : 'edit revisions';
-  }
-  return _revisioning_node_revision_access($revision_op, $node);
+  return REVISIONING_LOAD_CURRENT;
 }
 
 function _revisioning_prepare_msg($node) {
@@ -739,7 +746,7 @@ function _revisioning_prepare_msg($node) {
   elseif ($count > 1) {
     drupal_set_message(t('Please note there are !count revisions more recent than the one you are about to edit.', array('!count' => $count)), 'warning');
   }
-} 
+}
 
 function _revisioning_insert_msg($node) {
   if ($node->status) {
@@ -759,16 +766,12 @@ function _revisioning_present_node($node, $op = 'any') {
 }
 
 /**
- * Menu callback to view a revision.
- *
- * Normally called when URLs of the format 'node/%node/revisions/%vid/view'
- * are clicked, this may also be used for URLs like 'node/%node/view'.
- * In the latter case we either load the current revision (default) or the
- * latest, as specified by the node's load_op attribute.
+ * Menu callback for the primary View tab.
  */
-function _revisioning_view_revision($node) {
-  if ($node->load_op == REVISIONING_LOAD_LATEST && $node->latest_vid != $node->vid) {
-    $node = node_load($node->nid, $node->latest_vid);
+function _revisioning_view($node) {
+  if (_revisioning_load_op($node, 'view') == REVISIONING_LOAD_LATEST) {
+    $vid_to_load = revisioning_get_latest_revision_id($node->nid);
+    $node = node_load($node->nid, $vid_to_load);
   }
   // In node.module, node_page_view() is used to display the current, while
   // node_show() is used for any other revision. The difference between the
@@ -779,12 +782,49 @@ function _revisioning_view_revision($node) {
 }
 
 /**
- * Menu callback to edit a revision.
- *
- * Normally called when URLs of the format 'node/%node/revisions/%vid/edit'
- * are clicked, this may also be used for URLs like 'node/%node/edit'.
- * In the latter case we either load the current revision (default) or the
- * latest, as specified by the node's load_op attribute.
+ * Callback for the primary Edit tab.
+ */
+function _revisioning_edit($node) {
+  // Use the admin theme if the user specified this for node edit pages
+  if (variable_get('node_admin_theme', FALSE)) {
+    global $theme, $custom_theme;
+    $custom_theme = variable_get('admin_theme', $theme);
+  }
+  if (_revisioning_load_op($node, 'edit') == REVISIONING_LOAD_LATEST) {
+    $vid_to_load = revisioning_get_latest_revision_id($node->nid);
+    $node = node_load($node->nid, $vid_to_load);
+  }
+  // Following is the same as node_page_edit().
+  drupal_set_title(check_plain($node->title));
+  return drupal_get_form($node->type .'_node_form', $node);
+}
+
+/**
+ * Callback for the primary View and Edit tabs.
+ * @param $node
+ * @param $edit, bool
+ * @return string
+ */
+function _revisioning_title_for_tab($node, $edit = FALSE) {
+  if ($node->num_revisions <= 1) {
+    return $edit ? t('Edit') : t('View');
+  }
+  $op = $edit ? 'edit' : 'view';
+  if (_revisioning_load_op($node, $op) == REVISIONING_LOAD_LATEST) {
+    return $edit ? t('Edit latest') : t('View latest');
+  }
+  return $edit ? t('Edit current') : t('View current');
+}
+
+/**
+ * Callback to view a particular revision.
+ */
+function _revisioning_view_revision($node) {
+  return node_page_view($node);
+}
+
+/**
+ * Callback to edit a particular revision.
  */
 function _revisioning_edit_revision($node) {
   // Use the admin theme if the user specified this for node edit pages
@@ -792,22 +832,8 @@ function _revisioning_edit_revision($node) {
     global $theme, $custom_theme;
     $custom_theme = variable_get('admin_theme', $theme);
   }
-  if ($node->load_op == REVISIONING_LOAD_LATEST && $node->latest_vid != $node->vid) {
-    $node = node_load($node->nid, $node->latest_vid);
-  }
-  // Following is the same as node_page_edit().
   drupal_set_title(check_plain($node->title));
   return drupal_get_form($node->type .'_node_form', $node);
-}
-
-function _revisioning_title_for_tab($node, $edit=FALSE) {
-  if ($node->num_revisions <= 1) {
-    return $edit ? t('Edit') : t('View');
-  }
-  switch ($node->load_op) {
-    case REVISIONING_LOAD_CURRENT: return $edit ? t('Edit current') : t('View current');
-    case REVISIONING_LOAD_LATEST : return $edit ? t('Edit latest')  : t('View latest');
-  }
 }
 
 /**
