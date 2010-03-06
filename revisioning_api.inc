@@ -79,7 +79,7 @@ function _revisioning_node_is_pending($node) {
  *
  * @TODO: Add more operations if needed.
  */
-function revisioning_revisionapi($op, &$node) {
+function revisioning_revisionapi($op, $node) {
   switch ($op) {
     case 'pre revert':
       // Invoke corresponding Rules event
@@ -120,7 +120,7 @@ function revisioning_revisionapi($op, &$node) {
   //case 'pre unpublish':
       // Not implemented: do we really need it ?
 
-      case 'post unpublish':
+    case 'post unpublish':
       // Invoke the revisioning trigger passing 'unpublish' as the operation
       if (module_exists('trigger')) {
         module_invoke_all('revisioning', 'unpublish');
