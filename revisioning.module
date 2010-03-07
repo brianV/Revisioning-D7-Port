@@ -708,27 +708,29 @@ function _revisioning_view_edit_access_callback($op, $node) {
 }
 
 function _revisioning_load_op($node, $op, $check_access = FALSE) {
-  $view_mode = (int)variable_get('revisioning_view_callback', REVISIONING_LOAD_CURRENT);
-  $edit_mode = (int)variable_get('revisioning_edit_callback', REVISIONING_LOAD_CURRENT);
-  $load_op = ($op == 'edit') ? $edit_mode : $view_mode;
-  if ($load_op == REVISIONING_LOAD_LATEST) {
-    // Site is configured to load latest revision, but we'll only do this if
-    // the user has the permission to do so.
-    $latest_vid = revisioning_get_latest_revision_id($node->nid);
-    if ($latest_vid != $node->current_revision_id) {
-      if (!$check_access) {
-        return REVISIONING_LOAD_LATEST;
-      }
-      $original_vid = $node->vid;
-      $node->vid = $latest_vid;
-      $node->is_current = node_tools_revision_is_current($node);
-      $revision_op = ($op == 'view') ? 'view revisions' : 'edit revisions';
-      $access = _revisioning_node_revision_access($revision_op, $node);
-      // Restore $node (even though called by value), so that it remains consistent
-      $node->vid = $original_vid;
-      $node->is_current = node_tools_revision_is_current($node);
-      if ($access) {
-        return REVISIONING_LOAD_LATEST;
+  if ($node->revision_moderation) {
+    $view_mode = (int)variable_get('revisioning_view_callback', REVISIONING_LOAD_CURRENT);
+    $edit_mode = (int)variable_get('revisioning_edit_callback', REVISIONING_LOAD_CURRENT);
+    $load_op = ($op == 'edit') ? $edit_mode : $view_mode;
+    if ($load_op == REVISIONING_LOAD_LATEST) {
+      // Site is configured to load latest revision, but we'll only do this if
+      // the latest isn't loaded already and the user has the permission to do so.
+      $latest_vid = revisioning_get_latest_revision_id($node->nid);
+      if ($latest_vid != $node->current_revision_id) {
+        if (!$check_access) {
+          return REVISIONING_LOAD_LATEST;
+        }
+        $original_vid = $node->vid;
+        $node->vid = $latest_vid;
+        $node->is_current = node_tools_revision_is_current($node);
+        $revision_op = ($op == 'view') ? 'view revisions' : 'edit revisions';
+        $access = _revisioning_node_revision_access($revision_op, $node);
+        // Restore $node (even though called by value), so that it remains consistent
+        $node->vid = $original_vid;
+        $node->is_current = node_tools_revision_is_current($node);
+        if ($access) {
+          return REVISIONING_LOAD_LATEST;
+        }
       }
     }
   }
