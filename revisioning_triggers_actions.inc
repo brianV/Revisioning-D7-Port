@@ -58,10 +58,12 @@ function revisioning_revisioning($op, $object = NULL, $args = NULL) {
   $context = array('hook' => 'revisioning', 'op' => $op, 'user' => $user);
   foreach ($aids as $aid => $action_info) {
     if ($action_info['type'] == 'node') {
-      if (!$object && !$node && (arg(0) == 'node') && is_numeric(arg(1))) {
+      $object = NULL; // @todo: sort out why we need this line i.e. enforce reload
+      $nid = arg(1);
+      if (!$object && !$node && (arg(0) == 'node') && is_numeric($nid)) {
         // Clear the static node_load() cache to ensure we are passing the
         // updated object to the node actions.
-        $node = node_load(arg(1), NULL, TRUE);
+        $node = node_load($nid, NULL, TRUE);
       }
       $obj = $object ? $object : $node;
     }
