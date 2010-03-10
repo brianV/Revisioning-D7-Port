@@ -602,9 +602,9 @@ function _revisioning_operation_appropriate($revision_op, $node) {
       break;
 
     case 'publish revisions':
-      // If the node isn't meant to be moderated or the node isn't pending,
-      // disallow publication.
-      if (!$node->revision_moderation || !$node->is_pending) {
+      // If the node isn't meant to be moderated or the revision is not either
+      // pending or current but not published, then disallow publication.
+      if (!$node->revision_moderation || !($node->is_pending || ($node->is_current && !$node->status))) {
         return FALSE;
       }
       break;
