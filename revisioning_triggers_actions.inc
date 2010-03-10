@@ -33,43 +33,42 @@ function revisioning_hook_info() {
 /**
  * Implementation of hook_<trigger_name>().
  *
- * Note confusing name due to fact that trigger name needs to equal module name.
+ * Note the confusing name -- this due to fact that trigger name needs to equal
+ * the module name.
  * @see revisioning_hook_info()
  *
  * @param $op
- *  trigger operation name
+ *  trigger operation name, e.g 'publish', 'unpublish', 'revert' as passed in
+ *  from revisioning_revisionapi()
+ * @param $object
+ *  typically the node object as passed in from revisioning_revisionapi();
+ *  if omitted this function will try to load the node object based on the URL
  */
-function revisioning_revisioning($op) {
-  if (!module_exists("trigger")) {
+function revisioning_revisioning($op, $object = NULL, $args = NULL) {
+  if (!module_exists('trigger')) {
     return;
   }
   $aids = _trigger_get_hook_aids('revisioning', $op);
-  if (empty($aids)) {
+  if (empty($aids)) { // no actions defined for this trigger
     return;
   }
-  watchdog('revisioning', '%op trigger is actioning "@aids"', array('%op' => $op, '@aids' => implode(', ', array_keys($aids))));
+  watchdog('revisioning', '%op trigger is actioning "@aids"', 
+    array('%op' => $op, '@aids' => implode(', ', array_keys($aids))));
   global $user;
   $context = array('hook' => 'revisioning', 'op' => $op, 'user' => $user);
-  $node = NULL;
   foreach ($aids as $aid => $action_info) {
     if ($action_info['type'] == 'node') {
-      if ((arg(0) == 'node') && is_numeric(arg(1))) {
-        if (!$node) {
-          // This node has already been modified directly in the database.
-          // Clear the static node_load() cache to ensure we are passing the
-          // updated object to the node actions.
-          $node = node_load(arg(1), NULL, TRUE);
-          if (!$node) {
-            $node = new stdClass;
-          }
-        }
-        $object = $node;
+      if (!$object && !$node && (arg(0) == 'node') && is_numeric(arg(1))) {
+        // Clear the static node_load() cache to ensure we are passing the
+        // updated object to the node actions.
+        $node = node_load(arg(1), NULL, TRUE);
       }
+      $obj = $object ? $object : $node;
     }
-    else {
-      $object = $user;
+    else { // assume user object
+      $obj = $object ? $object : $user;
     }
-    actions_do($aid, $object, $context);
+    actions_do($aid, $obj, $context, $args);
   }
 }
 
