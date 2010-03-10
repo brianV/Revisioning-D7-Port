@@ -91,7 +91,7 @@ function revisioning_revisionapi($op, $node) {
     case 'post revert':
       // Invoke the revisioning trigger passing 'revert' as the operation
       if (module_exists('trigger')) {
-        module_invoke_all('revisioning', 'revert');
+        module_invoke_all('revisioning', 'revert', $node);
       }
       // Invoke corresponding Rules event
       if (module_exists('rules')) {
@@ -109,7 +109,7 @@ function revisioning_revisionapi($op, $node) {
     case 'post publish':
       // Invoke the revisioning trigger passing 'publish' as the operation
       if (module_exists('trigger')) {
-        module_invoke_all('revisioning', 'publish');
+        module_invoke_all('revisioning', 'publish', $node);
       }
       // Invoke corresponding Rules event
       if (module_exists('rules')) {
@@ -123,7 +123,7 @@ function revisioning_revisionapi($op, $node) {
     case 'post unpublish':
       // Invoke the revisioning trigger passing 'unpublish' as the operation
       if (module_exists('trigger')) {
-        module_invoke_all('revisioning', 'unpublish');
+        module_invoke_all('revisioning', 'unpublish', $node);
       }
       // Invoke corresponding Rules event
       if (module_exists('rules')) {
