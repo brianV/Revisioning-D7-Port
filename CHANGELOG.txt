@@ -115,3 +115,5 @@ being used as API.
 o First steps towards panel integration [#519924] (see revisioning.install)
 o hook_revisioning() now accepts node or user object as optional argument (thanks: Neil Ang)
 o No more PHP 5.3.1 warnings [#705380] (& removed from two function signatures)
+o Fix [#729432]
+

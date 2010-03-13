@@ -91,7 +91,7 @@ function revisioning_revisionapi($op, $node) {
     case 'post revert':
       // Invoke the revisioning trigger passing 'revert' as the operation
       if (module_exists('trigger')) {
-        module_invoke_all('revisioning', 'revert', $node);
+        module_invoke_all('revisioning', 'revert', $node, $node->vid);
       }
       // Invoke corresponding Rules event
       if (module_exists('rules')) {

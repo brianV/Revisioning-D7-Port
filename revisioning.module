@@ -389,9 +389,8 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
         if (!$node->status && user_access('publish revisions') && variable_get('revisioning_auto_publish_'. $node->type, FALSE)) {
           drupal_set_message(t('Auto-publishing this revision.'));
           $node->status = TRUE;
-          // Make sure current_revision_id is pointing to right revision or
-          // subsequent $op='update' will reset it
-          $node->current_revision_id = $node->vid;
+          // Make sure the 'update' does NOT reset vid
+          unset($node->current_revision_id);
         }
       }
       break;
@@ -401,8 +400,8 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
       break;
 
     case 'update':  // new node, called from node_save(), after _node_save_revision()
-      if ($node->revision_moderation &&
-          isset($node->current_revision_id) && $node->current_revision_id != $node->vid) {
+      if ($node->revision_moderation && isset($node->current_revision_id)
+          && $node->current_revision_id != $node->vid) {
         // Resetting vid back to its originial value, thus creating pending revision
         db_query('UPDATE {node} SET vid=%d WHERE nid=%d', $node->current_revision_id, $node->nid);
       //$node->is_pending = TRUE;
