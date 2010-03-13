@@ -386,10 +386,10 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
           // Update the $node object just before it is saved to the db
           $node->revision = FALSE;
         }
-        if (!$node->status && user_access('publish revisions') && variable_get('revisioning_auto_publish_'. $node->type, FALSE)) {
+        if (user_access('publish revisions') && variable_get('revisioning_auto_publish_'. $node->type, FALSE)) {
           drupal_set_message(t('Auto-publishing this revision.'));
           $node->status = TRUE;
-          // Make sure the 'update' does NOT reset vid
+          // Make sure the 'update' does NOT reset vid, so that new revision becomes current
           unset($node->current_revision_id);
         }
       }
