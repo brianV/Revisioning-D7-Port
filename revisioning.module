@@ -480,7 +480,7 @@ function revisioning_block($op = 'list', $delta = 0, $edit = array()) {
 function revisioning_views_api() {
   return array(
     'api' => views_api_version(),
-    'path' => drupal_get_path('module', 'revisioning')
+    'path' => drupal_get_path('module', 'revisioning') .'/views'
   );
 }
 

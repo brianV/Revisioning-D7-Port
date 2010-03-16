@@ -37,13 +37,14 @@ define('REVISION_PENDING', 2);
  * @return
  *  if $state is provided, state name. Otherwise, state names array keyed by state id.
  */
-function _revisioning_revision_states($state = NULL) {
+function revisioning_revision_states($state = NULL) {
+  static $states;
   $states = array(
-    REVISION_PENDING  => t('Pending'),
-    REVISION_CURRENT  => t('Current, published'),
     REVISION_ARCHIVED => t('Archived'),
+    REVISION_CURRENT  => t('Current, published'),
+    REVISION_PENDING  => t('Pending'),
   );
-  return empty($state) ? $states : $states[$state];
+  return $state === NULL ? $states : $states[$state];
 }
 
 /**
