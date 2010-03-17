@@ -3,16 +3,18 @@
 
 /**
  * Implementation of hook_views_data().
- */
+ *
+ * Ommitted, we're altering existing groups, not creating a new one.
+ *  
 function revisioning_views_data() {
-  // We're altering the "Node revision" field group, not creating a new one.
 }
+*/
 
 /**
  * Implementation of hook_views_data_alter().
  * 
  * We define a pseudo-field 'state' (values: pending, current, archived) for
- * both node and node_revisions.
+ * both node and node_revisions tables.
  */
 function revisioning_views_data_alter(&$data) {
 
@@ -24,12 +26,9 @@ function revisioning_views_data_alter(&$data) {
       'click sortable' => TRUE,
     ),
     'filter' => array(
-    //'label' => t('State'),
       'handler' => 'revisioning_handler_filter_node_state',
-    ),
-    'sort' => array(
-      'handler' => 'revisioning_handler_sort_node_state',
     )
+    // Cannot support sort as 'state' cannot be expressed as ORDER BY clause
   );
 
   $data['node_revisions']['title']['help'] = t('The title of the revision.');
@@ -41,12 +40,9 @@ function revisioning_views_data_alter(&$data) {
       'click sortable' => TRUE,
     ),
     'filter' => array(
-    //'label' => t('State'),
       'handler' => 'revisioning_handler_filter_revision_state',
-    ),
-    'sort' => array(
-      'handler' => 'revisioning_handler_sort_revision_state',
     )
+    // Cannot support sort as 'state' cannot be expressed as ORDER BY clause
   );
 }
 
@@ -63,8 +59,8 @@ function revisioning_views_handlers() {
     'handlers' => array(
       'revisioning_handler_field_node_state' => array('parent' => 'views_handler_field'),
       'revisioning_handler_field_revision_state' => array('parent' => 'views_handler_field'),
-      'revisioning_handler_filter_node_state' => array('parent' => 'views_handler_filter_string'),
-      'revisioning_handler_filter_revision_state' => array('parent' => 'views_handler_filter_string')
+      'revisioning_handler_filter_node_state' => array('parent' => 'views_handler_filter_in_operator'),
+      'revisioning_handler_filter_revision_state' => array('parent' => 'views_handler_filter_in_operator')
     )
   );
 }

@@ -8,7 +8,8 @@ class revisioning_handler_field_node_state extends views_handler_field {
   
   function construct() {
     parent::construct();
-    // Collect additional data required prior to rendering
+    // Request node fields required to calculate the 'state' when rendering
+    $this->additional_fields['type'] = 'type';
     $this->additional_fields['nid'] = 'nid';
     $this->additional_fields['vid'] = 'vid';
     $this->additional_fields['published'] = array('field' => 'status');
@@ -17,11 +18,11 @@ class revisioning_handler_field_node_state extends views_handler_field {
   /**
    * 
    * @see sites/all/modules/views/includes/views_handler#access()
-   *
+   */
   function access() {
-    return user_access('view revisions'); // TODO use Module Grants
+    return user_access('access content');
   }
-  */
+  
   /**
    * 
    * @see sites/all/modules/views/handlers/views_handler_field#query()
@@ -33,22 +34,30 @@ class revisioning_handler_field_node_state extends views_handler_field {
   }
 
   /**
-   * Note that $contains: 
-   *   o vid
-   *   o node_revisions_nid (node id)
-   *   o node_status (published flag)
+   * Implement the rendering of the state value.
+   *
+   * Note that $values contains:
+   *   o nid
+   *   o node_type (content type) 
    *   o node_vid (current revision id)
+   *   o node_status (published flag)
    *
    * @see sites/all/modules/views/handlers/views_handler_field#render($values)
    */
   function render($values) {
-    $nid = $values->{$this->aliases['nid']};
     $published = $values->{$this->aliases['published']};
+    $nid = $values->{$this->aliases['nid']};
     $current_vid = $values->{$this->aliases['vid']};
-
-    $is_initial_unpublished_draft = !$published && (node_tools_get_number_of_revisions($nid) == 1);
     $latest_vid = revisioning_get_latest_revision_id($nid);
+    $is_initial_unpublished_draft = !$published && (node_tools_get_number_of_revisions($nid) == 1);
     $is_pending = ($latest_vid > $current_vid) || $is_initial_unpublished_draft;
-    return $is_pending ? t('Revision pending') : ($published && ($latest_vid == $current_vid) ? t('Up to date') : 'Archived');
+    $description = $is_pending
+      ? t('Revision pending')
+      : ($published && ($latest_vid == $current_vid) ? t('Current, published') : t('Archived'));
+    $content_type = $values->{$this->aliases['type']};
+    if (!node_tools_content_is_moderated($content_type)) {
+      $description .= t(' (not moderated)');
+    }
+    return $description;
   }
 }
