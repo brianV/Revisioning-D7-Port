@@ -52,7 +52,7 @@ function revisioning_revisioning($op, $object = NULL, $args = NULL) {
   if (empty($aids)) { // no actions defined for this trigger
     return;
   }
-  watchdog('revisioning', '%op trigger is actioning "@aids"', 
+  watchdog('revisioning', '%op trigger is actioning "@aids"',
     array('%op' => $op, '@aids' => implode(', ', array_keys($aids))));
   global $user;
   $context = array('hook' => 'revisioning', 'op' => $op, 'user' => $user);

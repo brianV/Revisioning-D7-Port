@@ -462,7 +462,7 @@ function revisioning_user_all_access($permissions, $account = NULL) {
 
 /**
  * Return an array of names of content types that are subject to moderation.
- *  
+ *
  * @return array of strings, may be empty
  */
 function revisioning_moderated_content_types() {
