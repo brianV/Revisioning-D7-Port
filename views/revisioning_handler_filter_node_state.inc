@@ -3,18 +3,13 @@
 
 /**
  * @file
- *   Views filter override.
+ *  Views filter override to filter on node state, i.e. pending, archived, current.
  */
 
-/**
- * Filter on node state, i.e. pending, archived, current.
- */
 class revisioning_handler_filter_node_state extends views_handler_filter_in_operator {
 
   /**
    * Override the query, in particular the WHERE clause.
-   *
-   * @see sites/all/modules/views/handlers/views_handler_filter_in_operator#query()
    */
   function query() {
     if (empty($this->value)) {
@@ -25,14 +20,25 @@ class revisioning_handler_filter_node_state extends views_handler_filter_in_oper
     $subclauses = array();
     foreach ($this->value as $state_code) {
       switch ($state_code) {
+
         case REVISION_ARCHIVED:
-          $subclauses[] = "($node_table.status=0)";
+          // A node is considered archived when it's unpublished and has 2 or
+          // more revisions. An unpublished node with 1 revision is considered
+          // pending.
+          $subclauses[] = "($node_table.status=0 AND (SELECT COUNT(vid) FROM $revisions_table WHERE nid=$node_table.nid)>1)";
           break;
+
         case REVISION_CURRENT:
+          // A node is considered up-to-date when it's published and its
+          // current revision is the latest revision (highest vid).
           $subclauses[] = "($node_table.status=1 AND $node_table.vid=(SELECT MAX(vid) FROM $revisions_table WHERE nid=$node_table.nid))";
           break;
+
         case REVISION_PENDING:
-          $subclauses[] = "($node_table.vid<(SELECT MAX(vid) FROM $revisions_table WHERE $node_table.nid=$revisions_table.nid) OR ($node_table.status=0 AND (SELECT COUNT(vid) FROM $revisions_table WHERE vid=$node_table.vid)=1))";
+          // A node is pending when it's published with a current revision
+          // that's not the latest or when the node has a single, yet to be
+          // published revision.
+          $subclauses[] = "(($node_table.status=1 AND $node_table.vid<(SELECT MAX(vid) FROM $revisions_table WHERE nid=$node_table.nid)) OR ($node_table.status=0 AND (SELECT COUNT(vid) FROM $revisions_table WHERE nid=$node_table.nid)=1))";
           break;
       }
     }

@@ -3,18 +3,13 @@
 
 /**
  * @file
- *   Views filter override.
+ *   Views filter override to filter on revision state, i.e. pending, archived, current.
  */
 
-/**
- * Filter on revision state, i.e. pending, archived, current.
- */
 class revisioning_handler_filter_revision_state extends views_handler_filter_in_operator {
 
   /**
    * Override the query, in particular the WHERE clause.
-   *
-   * @see sites/all/modules/views/handlers/views_handler_filter_in_operator#query()
    */
   function query() {
     if (empty($this->value)) {
@@ -26,6 +21,7 @@ class revisioning_handler_filter_revision_state extends views_handler_filter_in_
     $subclauses = array();
     foreach ($this->value as $state_code) {
       switch ($state_code) {
+
         case REVISION_ARCHIVED:
           $subclauses[] = "($revisions_table.vid<$node_table.vid)";
           break;
@@ -33,7 +29,7 @@ class revisioning_handler_filter_revision_state extends views_handler_filter_in_
           $subclauses[] = "($revisions_table.vid=$node_table.vid AND $node_table.status=1)";
           break;
         case REVISION_PENDING:
-          $subclauses[] = "($revisions_table.vid>$node_table.vid OR ($node_table.status=0 AND (SELECT COUNT(vid) FROM $revisions_table WHERE $revisions_table.nid=$node_table.nid)=1))";
+          $subclauses[] = "($revisions_table.vid>$node_table.vid OR ($node_table.status=0 AND (SELECT COUNT(vid) FROM $revisions_table WHERE nid=$node_table.nid)=1))";
           break;
       }
     }
