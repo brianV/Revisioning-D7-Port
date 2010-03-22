@@ -459,3 +459,19 @@ function revisioning_user_all_access($permissions, $account = NULL) {
   }
   return TRUE;
 }
+
+/**
+ * Return an array of names of content types that are subject to moderation.
+ *  
+ * @return array of strings, may be empty
+ */
+function revisioning_moderated_content_types() {
+  $moderated_content_types = array();
+  foreach (node_get_types() as $type) {
+    $content_type = check_plain($type->type);
+    if (node_tools_content_is_moderated($content_type)) {
+      $moderated_content_types[] = $content_type;
+    }
+  }
+  return $moderated_content_types;
+}
