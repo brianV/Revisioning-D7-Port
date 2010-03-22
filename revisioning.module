@@ -682,7 +682,7 @@ function _revisioning_node_revision_access($revision_op, $node) {
  */
 function _revisioning_view_edit_access_callback($op, $node) {
 
-  $load_op = _revisioning_load_op($node, $op, TRUE);
+  $load_op = _revisioning_load_op($node, $op);
 
   $vid = arg(3);
   if (is_numeric($vid)) {
@@ -706,7 +706,7 @@ function _revisioning_view_edit_access_callback($op, $node) {
   return _revisioning_node_revision_access($revision_op, $node);
 }
 
-function _revisioning_load_op($node, $op, $check_access = FALSE) {
+function _revisioning_load_op($node, $op, $check_access = TRUE) {
   if ($node->revision_moderation) {
     $view_mode = (int)variable_get('revisioning_view_callback', REVISIONING_LOAD_CURRENT);
     $edit_mode = (int)variable_get('revisioning_edit_callback', REVISIONING_LOAD_CURRENT);
@@ -777,7 +777,7 @@ function _revisioning_view($node) {
   // In node.module, node_page_view() is used to display the current, while
   // node_show() is used for any other revision. The difference between the
   // two is that node_page_view() surpresses the message that tells us we're
-  // viewing a revision, which is what we use here because we have our own
+  // viewing a revision. That's what we use here because we have our own
   // configurable message.
   return node_page_view($node);
 }
