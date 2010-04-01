@@ -16,7 +16,7 @@ class revisioning_handler_filter_node_state extends views_handler_filter_in_oper
       return;
     }
     $node_table = $this->ensure_my_table();
-    $revisions_table = $this->query->ensure_table('node_revisions');
+    $revisions_table = '{'. $this->query->ensure_table('node_revisions') .'}';
     $subclauses = array();
     foreach ($this->value as $state_code) {
       switch ($state_code) {
