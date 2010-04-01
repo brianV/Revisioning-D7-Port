@@ -399,8 +399,8 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
       _revisioning_insert_msg($node);
       break;
 
-    case 'update':  // new node, called from node_save(), after _node_save_revision()
-      if ($node->revision_moderation && isset($node->current_revision_id)
+    case 'update':  // edited node, called from node_save(), after _node_save_revision()
+      if ($node->revision_moderation && $node->current_revision_id // i.e. set and not 0
           && $node->current_revision_id != $node->vid) {
         // Resetting vid back to its originial value, thus creating pending revision
         db_query('UPDATE {node} SET vid=%d WHERE nid=%d', $node->current_revision_id, $node->nid);
