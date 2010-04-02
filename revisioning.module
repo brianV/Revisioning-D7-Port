@@ -536,7 +536,7 @@ function revisioning_user_node_access($revision_op, $node) {
       if (user_access('view revisions of any '. $type .' content', $user)) {
         break;
       }
-      if (($node->uid == $account->uid) && user_access('view revisions of own '. $type .' content', $user)) {
+      if (($node->uid == $user->uid) && user_access('view revisions of own '. $type .' content', $user)) {
         break;
       }
       return FALSE;
