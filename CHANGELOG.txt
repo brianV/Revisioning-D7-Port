@@ -110,12 +110,14 @@ o Refactored for better efficiency and integratability, see [#642962]
 o Decoupled from Module Grants, further refactoring to support Revisioning
 being used as API.
 
-6.x-4.0
+6.x-3.8
 =======
 o Views integration: 'state' field for Node and Node Revisions, as well as 
   filters for each. Also 'Node: number of revisions' and 'Node: revision 
   moderation' fields with their filters. Canned page view at 'Content summary'.
 o First steps towards panel integration [#519924].
 o hook_revisioning() now accepts node or user object as optional argument (thanks: Neil Ang)
-o No more PHP 5.3.1 warnings [#705380] (& removed from two function signatures)
+o No more PHP 5.3.1 warnings [#705380] (removed & from two function signatures)
 o Fix [#729432]
+o Fix [#758178]
+o Fix [#757696], comments #10+11
