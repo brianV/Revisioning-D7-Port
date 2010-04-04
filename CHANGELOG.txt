@@ -124,5 +124,5 @@ o Fix [#757696], comments #10+11
 
 6.x-3.9
 =======
-Don't redirect to latest revision when creating new node or when content type is not subject to revisioning [#761010].
-
+Don't redirect to latest revision when creating new node or when content type is not subject to moderation [#761010].
+Don't change title of View/Edit tabs to 'View/Edit current' when content type is not subject to moderation.
