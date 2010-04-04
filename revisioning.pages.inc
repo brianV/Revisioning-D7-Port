@@ -250,7 +250,8 @@ function _revisioning_set_info_message() {
  */
 function _revisioning_form_submit($form, &$form_state) {
   $nid = $form['#node']->nid;
-  if (!empty($nid)) { // don't redirect when creating new node
+  // Don't redirect when creating new node or when content type is not subject to revisioning
+  if (!empty($nid) && node_tools_content_is_moderated($form['#node']->type)) { 
     $vid = revisioning_get_latest_revision_id($nid);
     $form_state['redirect'] = "node/$nid/revisions/$vid/view";
   }
