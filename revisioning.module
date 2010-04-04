@@ -807,11 +807,10 @@ function _revisioning_edit($node) {
  * @return string
  */
 function _revisioning_title_for_tab($node, $edit = FALSE) {
-  if ($node->num_revisions <= 1) {
+  if ($node->num_revisions <= 1 || !node_tools_content_is_moderated($node->type)) {
     return $edit ? t('Edit') : t('View');
   }
-  $op = $edit ? 'edit' : 'view';
-  if (_revisioning_load_op($node, $op) == REVISIONING_LOAD_LATEST) {
+  if (_revisioning_load_op($node, $edit ? 'edit' : 'view') == REVISIONING_LOAD_LATEST) {
     return $edit ? t('Edit latest') : t('View latest');
   }
   return $edit ? t('Edit current') : t('View current');
