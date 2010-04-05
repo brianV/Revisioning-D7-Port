@@ -807,7 +807,7 @@ function _revisioning_edit($node) {
  * @return string
  */
 function _revisioning_title_for_tab($node, $edit = FALSE) {
-  if ($node->num_revisions <= 1 || !node_tools_content_is_moderated($node->type)) {
+  if ($node->num_revisions <= 1 || !$node->revision_moderation) {
     return $edit ? t('Edit') : t('View');
   }
   if (_revisioning_load_op($node, $edit ? 'edit' : 'view') == REVISIONING_LOAD_LATEST) {
