@@ -343,7 +343,7 @@ function revisioning_views_default_views() {
   $handler->override_option('header', 'Summary of site content');
   $handler->override_option('header_format', '2');
   $handler->override_option('header_empty', 0);
-  $handler->override_option('empty', 'Your site does not appear to have any content.');
+  $handler->override_option('empty', 'No content matches your query.');
   $handler->override_option('empty_format', '2');
   $handler->override_option('items_per_page', 20);
   $handler->override_option('use_pager', '1');
