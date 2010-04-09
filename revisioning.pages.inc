@@ -249,11 +249,11 @@ function _revisioning_set_info_message() {
  * revision we've just edited, so we get latest revision id from the database.
  */
 function _revisioning_form_submit($form, &$form_state) {
-  $nid = $form['#node']->nid; // Don't use $form_state['nid'], it will NOT be empty for a new node
-  // Don't redirect when creating new node or when content type is not subject to moderation
-  if (!empty($nid) && $form_state['node']['revision_moderation']) { 
-    $vid = revisioning_get_latest_revision_id($nid);
-    $form_state['redirect'] = "node/$nid/revisions/$vid/view";
+  $nid = $form['#node']->nid; // Don't use $form_state['nid'], will NOT be empty for a new node
+  // Don't redirect when creating new node or when the displayed vid is the current
+  if (!empty($nid) && ($vid = revisioning_get_latest_revision_id($nid)) &&
+    $vid != node_tools_get_current_node_revision_id($nid)) {
+      $form_state['redirect'] = "node/$nid/revisions/$vid/view";
   }
 }
 
