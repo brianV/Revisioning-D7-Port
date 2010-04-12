@@ -601,17 +601,21 @@ function _revisioning_operation_appropriate($revision_op, $node) {
       break;
 
     case 'publish revisions':
-      // If the node isn't meant to be moderated or the revision is not either
-      // pending or current but not published, then disallow publication.
-      if (!$node->revision_moderation || !($node->is_pending || ($node->is_current && !$node->status))) {
+      // If the node isn't meant to be moderated and the user is not an admin,
+      // or the revision is not either pending or current but not published, 
+      // then disallow publication.
+      if ((!$node->revision_moderation && !user_access('administer nodes'))
+        || !($node->is_pending || ($node->is_current && !$node->status))) {
         return FALSE;
       }
       break;
 
     case 'unpublish current revision':
-      // If the node isn't meant to be moderated, or it is unpublished already
-      // or we're not looking at the current revision, then unpublication is off.
-      if (!$node->revision_moderation || !$node->status || !$node->is_current) {
+      // If the node isn't meant to be moderated and the user is not an admin, 
+      // or it is unpublished already or we're not looking at the current
+      // revision, then unpublication is not an option.
+      if ((!$node->revision_moderation && !user_access('administer nodes'))
+        || !$node->status || !$node->is_current) {
         return FALSE;
       }
       break;
