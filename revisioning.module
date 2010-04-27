@@ -275,8 +275,9 @@ function revisioning_menu_alter(&$items) {
   $items['node/%node']['access arguments']= $items['node/%node/view']['access arguments']= array('view', 1);
   $items['node/%node']['page callback']   = $items['node/%node/view']['page callback']   = '_revisioning_view';
   $items['node/%node']['page arguments']  = $items['node/%node/view']['page arguments']  = array(1);
-  $items['node/%node']['title callback']  = $items['node/%node/view']['title callback']  = '_revisioning_title_for_tab';
-  $items['node/%node']['title arguments'] = $items['node/%node/view']['title arguments'] = array(1, FALSE);
+  // Not applying title callback to 'node/%node', see #782316
+  $items['node/%node/view']['title callback']  = '_revisioning_title_for_tab';
+  $items['node/%node/view']['title arguments'] = array(1, FALSE);
 
   // Edit tab can be either 'Edit current' or 'Edit latest'.
   // It should be suppressed when the 'Revisions' tab shows the same revision,
