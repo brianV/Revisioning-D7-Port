@@ -31,8 +31,10 @@ function revisioning_update_6307() {
  * Revisioning weight to 1, which is higher than the default.
  */
 function revisioning_update_6310() {
-  $workflow_weight = db_result(db_query("SELECT weight FROM {system} WHERE name = 'workflow'"));
-  db_query("UPDATE {system} SET weight = %d WHERE name = 'revisioning'", (int)$workflow_weight + 1);
+  $ret = array();
+  $weight = 1 + (int)db_result(db_query("SELECT weight FROM {system} WHERE name = 'workflow'"));
+  $ret[] = update_sql("UPDATE {system} SET weight = $weight WHERE name = 'revisioning'");
+  return $ret;
 }
 
 /**
