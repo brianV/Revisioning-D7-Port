@@ -34,6 +34,10 @@ function revisioning_form_alter(&$form, &$form_state, $form_id) {
       );
     }
 
+    if (!variable_get('revisioning_allow_workflow_transition_via_edit_form', TRUE)) {
+      unset($form['workflow']);
+    }
+
     // In addition to node_form_submit() append our own handler to the list.
     $form['buttons']['submit']['#submit'][] = '_revisioning_form_submit';
 

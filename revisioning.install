@@ -23,6 +23,19 @@ function revisioning_update_6307() {
 }
 
 /**
+ * Implementation of hook_update_N().
+ * 
+ * Place ourselves after Workflow so that we can alter some of the forms created
+ * by Workflow.
+ * If Workflow isn't installed at the time that Revisioning is installed, set
+ * Revisioning weight to 1, which is higher than the default.
+ */
+function revisioning_update_6310() {
+  $workflow_weight = db_result(db_query("SELECT weight FROM {system} WHERE name = 'workflow'"));
+  db_query("UPDATE {system} SET weight = %d WHERE name = 'revisioning'", (int)$workflow_weight + 1);
+}
+
+/**
  * Implementation of hook_uninstall().
  */
 function revisioning_uninstall() {

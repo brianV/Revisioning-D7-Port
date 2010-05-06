@@ -701,7 +701,6 @@ function _revisioning_view_edit_access_callback($op, $node) {
       // Suppress 'View latest' and 'Edit latest' primary tabs when viewing latest
       return FALSE;
     }
-    return TRUE;
   }
   if ($load_op == REVISIONING_LOAD_LATEST) {
     // _revisioning_load_op has already checked permission to view latest
