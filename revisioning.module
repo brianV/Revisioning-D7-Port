@@ -360,6 +360,7 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
       // by users with the "administer nodes" permission
       $node->revision_moderation = node_tools_content_is_moderated($node->type);
       $node->is_pending = _revisioning_node_is_pending($node);
+
       // Could use following, but this seems old style, i.e. when $node is not a &ref
       //$node_extras['revision_moderation'] = $node->revision_moderation;
       //$node_extras['is_pending'] = $node->is_pending;
@@ -387,6 +388,8 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
           // Update the $node object just before it is saved to the db
           $node->revision = FALSE;
         }
+        // Save title of current revision to restore at $op=='update' time
+        $node->current_title = db_result(db_query('SELECT title FROM {node} WHERE nid=%d', $node->nid));
         if (user_access('publish revisions') && variable_get('revisioning_auto_publish_'. $node->type, FALSE)) {
           drupal_set_message(t('Auto-publishing this revision.'));
           $node->status = TRUE;
@@ -403,8 +406,8 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
     case 'update':  // edited node, called from node_save(), after _node_save_revision()
       if ($node->revision_moderation && $node->current_revision_id // i.e. set and not 0
           && $node->current_revision_id != $node->vid) {
-        // Resetting vid back to its originial value, thus creating pending revision
-        db_query('UPDATE {node} SET vid=%d WHERE nid=%d', $node->current_revision_id, $node->nid);
+        // Resetting title and vid back to their originial values, thus creating pending revision.
+        db_query("UPDATE {node} SET vid=%d, title='%s' WHERE nid=%d", $node->current_revision_id, $node->current_title, $node->nid);
       //$node->is_pending = TRUE;
       }
       break;
@@ -603,7 +606,7 @@ function _revisioning_operation_appropriate($revision_op, $node) {
 
     case 'publish revisions':
       // If the node isn't meant to be moderated and the user is not an admin,
-      // or the revision is not either pending or current but not published, 
+      // or the revision is not either pending or current but not published,
       // then disallow publication.
       if ((!$node->revision_moderation && !user_access('administer nodes'))
         || !($node->is_pending || ($node->is_current && !$node->status))) {
@@ -612,7 +615,7 @@ function _revisioning_operation_appropriate($revision_op, $node) {
       break;
 
     case 'unpublish current revision':
-      // If the node isn't meant to be moderated and the user is not an admin, 
+      // If the node isn't meant to be moderated and the user is not an admin,
       // or it is unpublished already or we're not looking at the current
       // revision, then unpublication is not an option.
       if ((!$node->revision_moderation && !user_access('administer nodes'))

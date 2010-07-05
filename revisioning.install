@@ -24,7 +24,7 @@ function revisioning_update_6307() {
 
 /**
  * Implementation of hook_update_N().
- * 
+ *
  * Place ourselves after Workflow so that we can alter some of the forms created
  * by Workflow.
  * If Workflow isn't installed at the time that Revisioning is installed, set
