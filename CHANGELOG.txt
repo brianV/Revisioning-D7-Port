@@ -139,3 +139,4 @@ o Fix: [#771324] (thanks: pacproduct)
 6.x-3.12
 ========
 o Fix: [#803112] (thanks: sdelbosc)
+o [#519924]

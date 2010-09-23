@@ -10,6 +10,8 @@
  * Implementation of hook_install().
  */
 function revisioning_install() {
+  // Panels override fix, see http://drupal.org/node/519924.
+  variable_set('page_manager_override_anyway', TRUE);
 }
 
 /**
@@ -17,7 +19,7 @@ function revisioning_install() {
  */
 function revisioning_update_6307() {
   $ret = array();
-  // Panels override fix, see http://drupal.org/node/519924#comment-2617370.
+  // Panels override fix, see http://drupal.org/node/519924.
   variable_set('page_manager_override_anyway', TRUE);
   return $ret;
 }
