@@ -66,6 +66,7 @@ function revisioning_perm() {
   $perms = array_merge($perms, array('view revision status messages',
     'edit revisions', 'publish revisions', 'unpublish current revision'));
   // Add per node-type view perms in same way as edit perms of node module.
+  // TOOD only do this for content types that have the "Create new revision" ticked
   foreach (node_get_types() as $type) {
     $name = check_plain($type->type);
     $perms[] = 'view revisions of own '. $name .' content';
@@ -377,7 +378,11 @@ function revisioning_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
       break;
 
     case 'prepare': // presenting edit form
-      _revisioning_prepare_msg($node);
+      // Check that we're dealing with the current node, not its translation source
+      $current_nid = arg(1);
+      if (is_numeric($current_nid) && $current_nid == $node->nid) {
+        _revisioning_prepare_msg($node);
+      }
       break;
 
     case 'presave': // for edits, called from node_save(), prior to _node_save_revision()

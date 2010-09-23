@@ -124,14 +124,18 @@ o Fix [#757696], comments #10+11
 
 6.x-3.9
 =======
-Don't redirect to latest revision when creating new node or when content type is not subject to moderation [#761010].
-Don't change title of View/Edit tabs to 'View/Edit current' when content type is not subject to moderation.
-Fixed "Content summary" View: "Node:Revision moderation filter" broke when no content types were moderated.
+o Don't redirect to latest revision when creating new node or when content type is not subject to moderation [#761010].
+o Don't change title of View/Edit tabs to 'View/Edit current' when content type is not subject to moderation.
+o Fixed "Content summary" View: "Node:Revision moderation filter" broke when no content types were moderated.
 
 6.x-3.11
 ========
-Enhance fix for [#761010]
-Feature: [#765950], comment #2
-Feature: Block view for Content Summary
-Feature: optionally suppress Workflow transitions via edit form
-Fix: [#771324] (thanks: pacproduct)
+o Enhance fix for [#761010]
+o Feature: [#765950], comment #2
+o Feature: Block view for Content Summary
+o Feature: optionally suppress Workflow transitions via edit form
+o Fix: [#771324] (thanks: pacproduct)
+
+6.x-3.12
+========
+o Fix: [#803112] (thanks: sdelbosc)
